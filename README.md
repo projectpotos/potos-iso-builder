@@ -2,7 +2,7 @@
 
 Make sure you have [Docker](https://docs.docker.com/get-docker) and [Docker-Compose](https://docs.docker.com/compose/install/) installed.
 
-Inside this cloned repository, run:
+Clone this repository and run inside:
 
 ```
 docker-compose build
