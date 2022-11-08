@@ -1,0 +1,119 @@
+#cloud-config
+autoinstall:
+  version: 1
+  apt:
+    preserve_sources_list: false
+    primary:
+      - arches: [default]
+        uri: "http://pkg.adfinis.com/ubuntu/"
+  identity:
+    hostname: potosmachine
+    # echo -n admin | mkpasswd --method=SHA-512 --stdin
+    password: $6$CqhJvUmnavRWOv50$nTru/In4/PHD7oP0XQih61IXEfzHOC/8BJ3quYbaxE8uKUSO6XbgbIdUOYQgI5bShTa2doRqwyQAPxh1LDJLJ/
+    username: admin
+  ssh:
+    allow-pw: true
+    authorized-keys: []
+    install-server: true
+  storage:
+    # https://ubuntu.com/server/docs/install/autoinstall-reference#storage
+    # https://curtin.readthedocs.io/en/latest/topics/storage.html
+    config:
+      - id: disk_primary
+        ptable: gpt
+        wipe: superblock
+        preserve: false
+        grub_device: true
+        type: disk
+        match:
+          size: largest
+      - id: partition_bios
+        type: partition
+        device: disk_primary
+        size: 1MB
+        flag: bios_grub
+        preserve: false
+        number: 1
+      - id: partition_boot
+        type: partition
+        device: disk_primary
+        size: 1GB
+        preserve: false
+        number: 2
+      - id: partition_crypt
+        type: partition
+        device: disk_primary
+        size: -1
+        preserve: false
+        number: 3
+      - id: dm-crypt_0
+        volume: partition_crypt
+        key: installpotos
+        preserve: false
+        type: dm_crypt
+      - id: lvm_volgroup_0
+        name: ubuntu-vg
+        devices: [dm-crypt_0]
+        preserve: false
+        type: lvm_volgroup
+      - id: lvm_volume_swap
+        name: swap
+        volgroup: lvm_volgroup_0
+        size: 1G
+        preserve: false
+        type: lvm_partition
+      - id: lvm_volume_root
+        name: root
+        volgroup: lvm_volgroup_0
+        size: -1
+        preserve: false
+        type: lvm_partition
+      - id: format_boot
+        fstype: ext4
+        volume: partition_boot
+        preserve: false
+        type: format
+      - id: format_swap
+        fstype: swap
+        volume: lvm_volume_swap
+        preserve: false
+        type: format
+      - id: format_root
+        fstype: ext4
+        volume: lvm_volume_root
+        preserve: false
+        type: format
+      - id: mount_boot
+        device: format_boot
+        path: /boot
+        type: mount
+      - id: mount_root
+        device: format_root
+        path: /
+        type: mount
+  packages:
+    - linux-generic-hwe-22.04
+    - ubuntu-desktop
+    - plymouth-theme-ubuntu-logo
+    - ldap-utils
+    - ansible-core
+    - yad
+    - jq
+  late-commands:
+    - |
+      for arg in $(cat /proc/cmdline); do
+        case "${arg}" in
+          POTOS_INSTALL=*)
+            echo "${arg}" > /target/POTOS_INSTALL
+            ;;
+        esac
+      done
+    #- sed -ie 's|GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT="nomodeset quiet splash gnome.initial-setup=1 systemd.debug_shell"|' /target/etc/default/grub
+    #- cp /cdrom/contrib/sudoers.d/01_gnome-initial-setup /target/etc/sudoers.d/01_gnome-initial-setup
+    #- cp -r /cdrom/contrib/scripts /target/setup
+    #- curtin in-target --target=/target -- ln -sf /setup/firstboot-gui.sh /usr/libexec/gnome-initial-setup
+    #- curtin in-target --target=/target -- update-grub
+    - mkdir /target/potos
+    - touch /target/potos/example.empty
+
+# vim: filetype=yaml

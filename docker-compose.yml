@@ -1,0 +1,11 @@
+---
+version: "3"
+services:
+  potos-iso-creation:
+    build: .
+    volumes:
+      - type: bind
+        source: ./potos-images
+        target: /potos-iso/potos-images
+    environment:
+      - "POTOS_ENV=production"
