@@ -2,9 +2,9 @@
 
 Make sure you have [Docker](https://docs.docker.com/get-docker) and [Docker-Compose](https://docs.docker.com/compose/install/) installed.
 
+Inside this cloned repository, run:
+
 ```
-git clone ${{ github.repositoryUrl }}
-cd potos-iso
 docker-compose build
 docker-compose up # The container does stop after building the .iso image in /potos-images automatically.
 ```
