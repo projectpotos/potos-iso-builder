@@ -1,0 +1,21 @@
+---
+name: 'yamllinting'
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  yamllint:
+    name: 'yamllint'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'checkout'
+        uses: actions/checkout@master
+      - name: 'yamllint'
+        uses: karancode/yamllint-github-action@master
+        with:
+          yamllint_file_or_dir: .
+          yamllint_comment: true
+        env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}

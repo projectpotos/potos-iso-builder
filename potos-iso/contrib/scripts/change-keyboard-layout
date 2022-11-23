@@ -1,0 +1,20 @@
+#!/bin/bash
+
+ALLCOLS=$(
+COLS=""
+sed '/^! layout$/,/^ *$/!d;//d' /usr/share/X11/xkb/rules/base.lst | sort -k 2 | while read layout description; do
+  description=$(echo ${description} | tr " " "_")
+  echo "${layout} ${description}"
+done)
+
+KEYBOARD_LAYOUT="$(yad --width 600 --height 600 --list --column 'Keyboard Layout' \
+  --column '' ${ALLCOLS} \
+  --print-column 1 --button gtk-ok \
+  --image /usr/share/icons/Adwaita/48x48/apps/preferences-desktop-keyboard-symbolic.symbolic.png \
+  --text 'Please select a keyboard layout')"
+
+KEYBOARD_LAYOUT=$(echo ${KEYBOARD_LAYOUT} | tr -d '|')
+
+gsettings set org.gnome.desktop.input-sources sources "[('xkb', '${KEYBOARD_LAYOUT}')]"
+
+echo "${KEYBOARD_LAYOUT}" > /tmp/${POTOS_CLIENT_SHORTNAME}_keyboardlayout
