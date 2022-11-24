@@ -7,13 +7,13 @@ POTOS_VERSION="${POTOS_CLIENT_NAME} (${POTOS_CLIENT_SHORTNAME})"
 
 #/setup/change-keyboard-layout
 
-if [[ -f /setup/potos-version ]]; then
-  POTOS_VERSION="$(</setup/potos-version)"
+if [[ -f /setup/${POTOS_CLIENT_SHORTNAME}-version ]]; then
+  POTOS_VERSION="$(</setup/${POTOS_CLIENT_SHORTNAME}-version)"
 fi
 
 yad --fullscreen --title "${POTOS_CLIENT_NAME} Setup" \
   --borders 20 --align center --button OK --image-on-top \
-  --image=/potos-setup/potos.png \
+  --image=/setup/potos.png \
   --text \
 "Welcome to the last step of the Potos installation
 
@@ -42,7 +42,7 @@ while [[ -z ${POTOS_USER} || -z ${POTOS_PASS} ]]; do
   USERINPUT="$(yad --fullscreen --title '${POTOS_CLIENT_NAME} Setup' \
     --borders 20 --align center \
     --button gtk-ok --button "Change keyboard layout":"/setup/change-keyboard-layout" \
-    --image-on-top --image=/potos-setup/potos.png \
+    --image-on-top --image=/setup/potos.png \
     --text \
 "IMPORTANT: If your password contains special characters, please remember to select the appropriate keyboard layout first.
 
