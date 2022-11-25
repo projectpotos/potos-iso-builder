@@ -31,7 +31,7 @@ Note: The time to generate the .iso image mainly depends on your internet bandwi
 | **POTOS_GIT_SPECS_URL**<br>*string, URL, trailing slash* | The URL to your Git Account that holds your own Potos Specs Repository. Make sure you have the trailing slash included. <br>*Default: https://github.com/projectpotos/*
 | **POTOS_GIT_SPECS_REPO**<br>*string, part of the URL* | The name of your own Potos Git Specs Repository, without *.git* at the End.<br>*Default: ansible-specs-potos*
 | **POTOS_GIT_SPECS_BRANCH**<br>*string* | Define the branch of your POTOS_GIT_SPECS_REPO. Typical values are `main`, `master`, `develop` <br>*Default: main*
-| **POTOS_GIT_SPECS_REPO**<br>*string*| Possible values are `production` and `develop`. This value will be a part of your .iso name.<br>*Default: production*
+| **POTOS_ENV**<br>*string*| Possible values are `production` and `develop`. The installation in `develop` mode is more verbose.<br>*Default: production*
 
 # Potos .iso installation
 

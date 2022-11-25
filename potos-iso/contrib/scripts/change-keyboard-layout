@@ -10,11 +10,15 @@ done)
 KEYBOARD_LAYOUT="$(yad --width 600 --height 600 --list --column 'Keyboard Layout' \
   --column '' ${ALLCOLS} \
   --print-column 1 --button gtk-ok \
-  --image /usr/share/icons/Adwaita/48x48/apps/preferences-desktop-keyboard-symbolic.symbolic.png \
+  --image /usr/share/icons/Adwaita/48x48/apps/accessories-character-map-symbolic.symbolic.png \
   --text 'Please select a keyboard layout')"
 
 KEYBOARD_LAYOUT=$(echo ${KEYBOARD_LAYOUT} | tr -d '|')
 
+# Write this setting into current gnome session, as non-root user
 gsettings set org.gnome.desktop.input-sources sources "[('xkb', '${KEYBOARD_LAYOUT}')]"
+
+# Write this settings permamently, keep them after reboot, as root user
+sudo sed -i 's/XKBLAYOUT=\".*"/XKBLAYOUT=\"'${KEYBOARD_LAYOUT}'\"/g' /etc/default/keyboard
 
 echo "${KEYBOARD_LAYOUT}" > /tmp/${POTOS_CLIENT_SHORTNAME}_keyboardlayout
