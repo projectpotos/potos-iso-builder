@@ -131,7 +131,10 @@ main() {
 #    esac
 #   done
 
-  echo "*** INFO: Got POTOS_SPECS_REPOSITORY = ${POTOS_SPECS_REPOSITORY}, POTOS_ADJOIN = ${POTOS_ADJOIN}, POTOS_ENV = ${POTOS_ENV}, POTOS_CLIENT_NAME = ${POTOS_CLIENT_NAME}, POTOS_CLIENT_SHORTNAME = ${POTOS_CLIENT_SHORTNAME}, \n POTOS_GIT_SPECS_URL= ${POTOS_GIT_SPECS_URL}, POTOS_GIT_SPECS_REPO = ${POTOS_GIT_SPECS_REPO}, POTOS_GIT_SPECS_BRANCH = ${POTOS_GIT_SPECS_BRANCH}"
+if [[ ${POTOS_ENV} == develop ]]; then
+  echo "*** POTOS_ENV is ${POTOS_ENV}, going to print some more informations for you:"
+  printenv | grep -i potos
+fi
   echo "*** Going build an ISO of type: ${INSTALL_TYPE} for ${ENVIRONMENT}"
 
   check_requirements

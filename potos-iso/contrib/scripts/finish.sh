@@ -3,10 +3,12 @@
 # Load all the environment variables
 source /setup/.env
 
-#just for debug , schroeffu
-mkdir /opt/tmp
-cp -R /setup/* /opt/tmp
-cp /setup/.env /opt/tmp
+if [[ ${POTOS_ENV} == develop ]]; then
+ #just for debug
+ mkdir /opt/tmp
+ cp -R /setup/* /opt/tmp
+ cp /setup/.env /opt/tmp
+fi
 
 ANSIBLE_WORKDIR='/var/lib/ansible/local/work'
 ANSIBLE_GIT_URL='https://github.com/projectpotos/ansible-plays-potos.git'
@@ -45,8 +47,13 @@ fi
 ################################################################################
 
 cd "${ANSIBLE_WORKDIR}"
-ansible-playbook prepare.yml -vvv | sed -u 's/^/# /'
-ansible-playbook playbook.yml -vvv | sed -u 's/^/# /'
+if [[ ${POTOS_ENV} == develop ]]; then
+  ansible-playbook prepare.yml -vvv | sed -u 's/^/# /'
+  ansible-playbook playbook.yml -vvv | sed -u 's/^/# /'
+else
+  ansible-playbook prepare.yml | sed -u 's/^/# /'
+  ansible-playbook playbook.yml | sed -u 's/^/# /'
+fi
 
 ################################################################################
 # Finalize the installation
