@@ -49,10 +49,10 @@ fi
 cd "${ANSIBLE_WORKDIR}"
 if [[ ${POTOS_ENV} == develop ]]; then
   ansible-playbook prepare.yml -vvv | sed -u 's/^/# /'
-  ansible-playbook playbook.yml -vvv | sed -u 's/^/# /'
+  ansible-playbook playbook.yml -vvv -e potos_runtype="firstboot" | sed -u 's/^/# /'
 else
   ansible-playbook prepare.yml | sed -u 's/^/# /'
-  ansible-playbook playbook.yml | sed -u 's/^/# /'
+  ansible-playbook playbook.yml -e potos_runtype="firstboot" | sed -u 's/^/# /'
 fi
 
 ################################################################################
