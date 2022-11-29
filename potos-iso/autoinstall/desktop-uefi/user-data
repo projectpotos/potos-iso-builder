@@ -1,5 +1,4 @@
----
-# cloud-config
+#cloud-config
 autoinstall:
   version: 1
   apt:
@@ -11,11 +10,7 @@ autoinstall:
     hostname: potosmachine
     # echo -n admin | mkpasswd --method=SHA-512 --stdin
     password: $6$CqhJvUmnavRWOv50$nTru/In4/PHD7oP0XQih61IXEfzHOC/8BJ3quYbaxE8uKUSO6XbgbIdUOYQgI5bShTa2doRqwyQAPxh1LDJLJ/
-    username: adminpotos
-  keyboard:
-    layout: us
-    variant: ''
-  locale: en_US
+    username: admin
   ssh:
     allow-pw: true
     authorized-keys: []
@@ -110,7 +105,7 @@ autoinstall:
     - ubuntu-desktop
     - plymouth-theme-ubuntu-logo
     - ldap-utils
-    - ansible-core
+    - ansible
     - yad
     - jq
   late-commands:
@@ -122,12 +117,12 @@ autoinstall:
             ;;
         esac
       done
-    #- sed -ie 's|GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT="nomodeset quiet splash gnome.initial-setup=1 systemd.debug_shell"|' /target/etc/default/grub
-    #- cp /cdrom/contrib/sudoers.d/01_gnome-initial-setup /target/etc/sudoers.d/01_gnome-initial-setup
-    #- cp -r /cdrom/contrib/scripts /target/setup
-    #- curtin in-target --target=/target -- ln -sf /setup/firstboot-gui.sh /usr/libexec/gnome-initial-setup
-    #- curtin in-target --target=/target -- update-grub
-    - mkdir /target/potos
-    - touch /target/potos/example.empty
+    - sed -ie 's|GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT="quiet splash gnome.initial-setup=1 systemd.debug_shell"|' /target/etc/default/grub
+    - rm -f /target/etc/netplan/*
+    - cp /cdrom/contrib/netplan/01-network-manager-all.yaml /target/etc/netplan/01-network-manager-all.yaml
+    - cp /cdrom/contrib/sudoers.d/01_gnome-initial-setup /target/etc/sudoers.d/01_gnome-initial-setup
+    - cp -r /cdrom/contrib/scripts /target/setup
+    - curtin in-target --target=/target -- ln -sf /setup/firstboot-gui.sh /usr/libexec/gnome-initial-setup
+    - curtin in-target --target=/target -- update-grub
 
 # vim: filetype=yaml
