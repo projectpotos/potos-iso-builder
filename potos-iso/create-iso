@@ -69,7 +69,7 @@ build_iso() {
 MBR_FILE=boot_hybrid.img
 
 dd if=${ORIG_ISO} bs=1 count=432 of=${MBR_FILE}
-dd if=${ORIG_ISO} bs=512 skip=2855516 count=8496 of=efi.img
+dd if=${ORIG_ISO} bs=512 skip=2871452 count=8496 of=efi.img
 
 xorriso -as mkisofs -r -V '${POTOS_CLIENT_NAME} 22.04' \
 -o ${POTOS_CLIENT_SHORTNAME}-installer-${ENVIRONMENT}.iso \
