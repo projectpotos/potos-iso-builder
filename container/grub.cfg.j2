@@ -7,12 +7,14 @@ set menu_color_highlight=black/light-gray
 
 grub_platform
 if [ "$grub_platform" = "efi" ]; then
-menuentry "Install Potos Linux Client" {
+menuentry "Install {{ POTOS_CLIENT_NAME }}" {
 	set gfxpayload=keep
 	linux	/casper/vmlinuz  fsck.mode=skip autoinstall ds=nocloud\;s=/cdrom/nocloud-uefi/ ---
 	initrd	/casper/initrd
+    {% if POTOS_FULL_UNATTENDED is not defined or POTOS_FULL_UNATTENDED != 'true' -%}
 	echo WARNING: This will erase your hard drive. Press Enter to confirm.
 	read dummy
+	{%- endif %}
 }
 menuentry 'Boot from next volume' {
 	exit 1
@@ -22,12 +24,14 @@ menuentry 'UEFI Firmware Settings' {
 }
 #grub_platform set to bios expected
 else
-menuentry "Install Potos Linux Client" {
+menuentry "Intall {{ POTOS_CLIENT_NAME }}" {
 	set gfxpayload=keep
 	linux	/casper/vmlinuz  fsck.mode=skip autoinstall ds=nocloud\;s=/cdrom/nocloud-bios/ ---
 	initrd	/casper/initrd
+    {% if POTOS_FULL_UNATTENDED is not defined or POTOS_FULL_UNATTENDED != 'true' -%}
 	echo WARNING: This will erase your hard drive. Press Enter to confirm.
 	read dummy
+    {%- endif %}
 }
 menuentry 'Test memory' {
 	linux16 /boot/memtest86+.bin

@@ -1,8 +1,0 @@
-#!/bin/bash
-
-rm -rf iso
-rm -f *.tar.bz2
-rm -f *.img
-rm -f *.iso
-rm -f *.sha256sum
-rm -f SHA256SUMS
