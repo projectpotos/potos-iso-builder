@@ -2,18 +2,7 @@
 version: "3.8"
 services:
   potos-iso-creation:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        POTOS_DISK_ENCRYPTION_INITIAL_PASSWORD: ${POTOS_DISK_ENCRYPTION_INITIAL_PASSWORD}
-        POTOS_INITIAL_HOSTNAME: ${POTOS_INITIAL_HOSTNAME}
-        POTOS_CLIENT_NAME: ${POTOS_CLIENT_NAME}
-        POTOS_CLIENT_SHORTNAME: ${POTOS_CLIENT_SHORTNAME}
-        POTOS_INITIAL_USERNAME: ${POTOS_INITIAL_USERNAME}
-        POTOS_INITIAL_PASSWORD_HASH: "${POTOS_INITIAL_PASSWORD_HASH}"
+    image: ghcr.io/projectpotos/potos-iso-builder:latest
     volumes:
-      - type: bind
-        source: ./potos-images
-        target: /potos-iso/potos-images
-    env_file: .env
+      - ./config:/config
+      - ./output:/output

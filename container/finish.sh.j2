@@ -1,16 +1,13 @@
 #!/bin/bash
 
-# Load all the environment variables
-source /setup/.env
+{# When Develop envitonment copy setup as backup #}
+{% if POTOS_ENV is defined and POTOS_ENV == 'develop' %}
+mkdir /opt/tmp
+cp -R /setup/* /opt/tmp
+{% endif %}
 
-if [[ ${POTOS_ENV} == develop ]]; then
- #just for debug
- mkdir /opt/tmp
- cp -R /setup/* /opt/tmp
- cp /setup/.env /opt/tmp
-fi
-
-ANSIBLE_WORKDIR='/var/lib/ansible/local/work'
+# Define temporary work directory and 
+ANSIBLE_WORKDIR='/tmp/potos_ansible'
 ANSIBLE_GIT_URL='https://github.com/projectpotos/ansible-plays-potos.git'
 ANSIBLE_GIT_BRANCH='main'
 
@@ -19,14 +16,15 @@ if [[ -d "/etc/potos" ]]; then
 fi
 
 mkdir -p "/etc/potos"
-mkdir -p "/var/log/potos"
+mkdir -p "/var/log/{{ POTOS_CLIENT_SHORTNAME }}"
 
 cat > /etc/potos/specs_repo.yml <<EOF
 ---
-client_name: "${POTOS_CLIENT_NAME}"
-git_url: "${POTOS_GIT_SPECS_URL}"
-git_repo: "${POTOS_GIT_SPECS_REPO}"
-git_branch: "${POTOS_GIT_SPECS_BRANCH}"
+client_name: "{{ POTOS_CLIENT_NAME }}"
+client_short_name: "{{ POTOS_CLIENT_SHORTNAME }}"
+git_url: "{{ POTOS_GIT_SPECS_URL }}"
+git_repo: "{{ POTOS_GIT_SPECS_REPO }}"
+git_branch: "{{ POTOS_GIT_SPECS_BRANCH }}"
 EOF
 
 if [[ -d "${ANSIBLE_WORKDIR}" ]]; then
@@ -47,13 +45,16 @@ fi
 ################################################################################
 
 cd "${ANSIBLE_WORKDIR}"
-if [[ ${POTOS_ENV} == develop ]]; then
-  ansible-playbook prepare.yml -vvv | sed -u 's/^/# /'
-  ansible-playbook playbook.yml -vvv -e potos_runtype="firstboot" | sed -u 's/^/# /'
-else
-  ansible-playbook prepare.yml | sed -u 's/^/# /'
-  ansible-playbook playbook.yml -e potos_runtype="firstboot" | sed -u 's/^/# /'
-fi
+
+virtualenv .
+source bin/activate
+pip3 install ansible-core==2.12.3
+
+{# Verbose ansible if develop #}
+ansible-playbook prepare.yml {% if POTOS_ENV is defined and POTOS_ENV == 'develop' %}-vvv {% endif %}| sed -u 's/^/# /'
+ansible-playbook playbook.yml {% if POTOS_ENV is defined and POTOS_ENV == 'develop' %}-vvv {% endif %}-e "{{ POTOS_CLIENT_SHORTNAME }}_runtype"="{{ POTOS_RUNTYPE }}" | sed -u 's/^/# /'
+
+deactivate
 
 ################################################################################
 # Finalize the installation
@@ -74,6 +75,7 @@ apt purge -y gnome-initial-setup
 userdel -rf gnome-initial-setup
 
 rm -rf /setup
+rm -rf "${ANSIBLE_WORKDIR}"
 
 sleep 5s
 systemctl reboot

@@ -1,0 +1,108 @@
+#!/bin/bash
+
+{# Only ask for keyboard if not fully unattended #}
+{% if POTOS_FULL_UNATTENDED is not defined or POTOS_FULL_UNATTENDED != 'true' %}
+/setup/change-keyboard-layout
+{% endif %}
+
+{# Include debugging infos only in develop builds #}
+{% if POTOS_ENV is defined and POTOS_ENV == 'develop' %}
+yad --fullscreen --title "{{ POTOS_CLIENT_NAME }} ENV {{ POTOS_ENV }}" \
+--borders 20 --align center --button OK --image-on-top \
+--image=/setup/logo.png \
+--text \
+"Welcome to the last step of the {{ POTOS_CLIENT_NAME }} installation
+
+ENV {{ POTOS_ENV }} detected. Going to print some more output here and later. Ansible will run in -vvv mode.
+
+client_name.long: {{ POTOS_CLIENT_NAME }}
+client_name.short: {{ POTOS_CLIENT_SHORTNAME }}
+
+disk_encryption.enable: {{ POTOS_DISK_ENCRYPTION_ENABLE }}
+disk_encryption.init_password: {{ POTOS_DISK_ENCRYPTION_INITIAL_PASSWORD }}
+
+specs.url: {{ POTOS_GIT_SPECS_URL }}
+specs.repo: {{ POTOS_GIT_SPECS_REPO }}
+specs.branch: {{ POTOS_GIT_SPECS_BRANCH }}
+
+initial_hostname: {{ POTOS_INITIAL_HOSTNAME }}
+
+initial_user.username: {{ POTOS_INITIAL_USERNAME }}
+initial_user.password: {{ POTOS_INITIAL_PASSWORD_HASH }}
+
+environment: {{ POTOS_ENV }}
+first_boot_ansible.runtype: {{ POTOS_RUNTYPE }}
+full_unattended_install: {{ POTOS_FULL_UNATTENDED }}
+
+input.iso_filename: {{ INPUT_ISO_FILENAME }}
+input.iso_url: {{ INPUT_ISO_URL }}
+input.iso_sha256_filename: {{ INPUT_ISO_SHA256_FILENAME }}
+input.iso_sha256_url: {{ INPUT_ISO_SHA256_URL }}
+output.version: {{ POTOS_VERSION }}
+output.iso_filename: {{ OUTPUT_ISO_FILENAME }}
+
+preinstall_packages:
+{% set packages = POTOS_PRE_INSTALL_PACKAGES.split('\n') %}
+{% for package in packages %}
+  - {{ package }}
+{% endfor %}
+
+Click OK to proceed the installation.
+"
+{% endif %}
+{# Skip info screen for fully unattended installation #}
+{% if POTOS_FULL_UNATTENDED is not defined or POTOS_FULL_UNATTENDED != 'true' %}
+yad --fullscreen --title "{{ POTOS_CLIENT_NAME }} Setup" \
+  --borders 20 --align center --button OK --image-on-top \
+  --image=/setup/logo.png \
+  --text \
+"Welcome to the last step of the {{ POTOS_CLIENT_NAME }} ({{ POTOS_VERSION }}) installation
+
+Click OK to proceed the installation.
+"
+{% endif %}
+sudo mkdir -m 755 -p /var/log/{{ POTOS_CLIENT_SHORTNAME }}
+sudo touch /var/log/{{ POTOS_CLIENT_SHORTNAME }}/setup.log
+sudo -E bash -c "/setup/finish.sh &> /var/log/{{ POTOS_CLIENT_SHORTNAME }}/setup.log" &
+
+FINISH_CMD_PID=${!}
+
+sudo chown gnome-initial-setup /dev/tty2
+
+sudo tail -f /var/log/{{ POTOS_CLIENT_SHORTNAME }}/setup.log | tee /dev/tty2 | yad --fullscreen --no-buttons --title "{{ POTOS_CLIENT_NAME }} Setup" \
+  --progress --enable-log --log-expanded --log-on-top --log-height 500 \
+  --text 'Please wait until the setup is finished' &
+
+# Wait until the finish.sh background process exits and check its return code
+wait ${FINISH_CMD_PID}
+
+FINISH_CMD_RC=${?}
+
+if [[ ${FINISH_CMD_RC} -ne 0 ]]; then
+  case ${FINISH_CMD_RC} in
+    1) ERROR_MSG="General command failure" ;;
+    2) ERROR_MSG="Network connectivity issues" ;;
+    3) ERROR_MSG="AD join failure" ;;
+    4) ERROR_MSG="Ansible failure" ;;
+    5) ERROR_MSG="Vault failure" ;;
+    6) ERROR_MSG="ISO outdated" ;;
+    *) ERROR_MSG="Unknown error code ${FINISH_CMD_RC}" ;;
+  esac
+fi
+
+sudo cat /var/log/{{ POTOS_CLIENT_SHORTNAME }}/setup.log | yad --fullscreen --title "{{ POTOS_CLIENT_NAME }} Setup" \
+  --borders 20 --align center --button gtk-ok \
+  --button "Shutdown":"sudo systemctl halt" \
+  --text-info --tail \
+  --image=/setup/logo.png --image-on-top \
+  --text \
+"Installation failed
+
+The last step of the installation was not successful.
+  Error message: ${ERROR_MSG}
+  Return code: ${FINISH_CMD_RC}
+
+Click OK to retry or Shutdown to cancel.
+"
+
+sudo systemctl restart gdm.service
