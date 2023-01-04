@@ -17,6 +17,7 @@ KEYBOARD_LAYOUT=$(echo ${KEYBOARD_LAYOUT} | tr -d '|')
 
 # Write this setting into current gnome session, as non-root user
 gsettings set org.gnome.desktop.input-sources sources "[('xkb', '${KEYBOARD_LAYOUT}')]"
+gsettings set org.gnome.desktop.input-sources mru-sources "[('xkb', '${KEYBOARD_LAYOUT}')]"
 
 # Write this settings permamently, keep them after reboot, as root user
 sudo sed -i 's/XKBLAYOUT=\".*"/XKBLAYOUT=\"'${KEYBOARD_LAYOUT}'\"/g' /etc/default/keyboard
