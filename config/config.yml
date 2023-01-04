@@ -9,6 +9,8 @@ specs:
   url: "https://github.com/projectpotos/"
   repo: "ansible-specs-potos"
   branch: "main"
+  ssh_key: ""  # eg. ssh_key: "potos_specs_key" for `potos_specs_key` in this config directory
+  ansible-vault-key-file: ""  # same as ssh_key, but for the file with the ansible-vault key
 initial_hostname: "potoshostname01"
 initial_user:
   username: "admin"

@@ -15,6 +15,8 @@ export POTOS_DISK_ENCRYPTION_INITIAL_PASSWORD=$(loadYmlVar '.disk_encryption.ini
 export POTOS_GIT_SPECS_URL=$(loadYmlVar '.specs.url' "https://github.com/projectpotos/")
 export POTOS_GIT_SPECS_REPO=$(loadYmlVar '.specs.repo' "ansible-specs-potos")
 export POTOS_GIT_SPECS_BRANCH=$(loadYmlVar '.specs.branch' "main")
+export POTOS_GIT_SPECS_SSH_KEY=$(loadYmlVar '.specs.ssh_key' "")
+export POTOS_GIT_SPECS_ANSIBLE_VAULT=$(loadYmlVar '.specs.ansible-vault-key-file' "")
 export POTOS_INITIAL_HOSTNAME=$(loadYmlVar '.initial_hostname' "potoshostname01")
 export POTOS_INITIAL_USERNAME=$(loadYmlVar '.initial_user.username' "admin")
 export POTOS_INITIAL_PASSWORD_HASH=$(loadYmlVar '.initial_user.password' '$6$L36BiUuVCSipvlO8$oGI0C.LXZegkbftFkVDXXaasTM6zs9LM71BkqZToKw5aOZ7Yr70pkzH3P9Xz5R.n0ULJ0Zf8v5ZQ/eH8flDR7/')
@@ -113,6 +115,15 @@ if [ -f /config/logo.png ]; then
   cp logo.png "${TMP_DIR}/setup/logo.png"
 else
   cp /config/logo.png "${TMP_DIR}/setup/logo.png"
+fi
+
+# copy ssh deploy key for specs repo into image
+if [ -n "${POTOS_GIT_SPECS_SSH_KEY}" ] && [ -f "/config/${POTOS_GIT_SPECS_SSH_KEY}" ]; then
+  cp "/config/${POTOS_GIT_SPECS_SSH_KEY}" "${TMP_DIR}/setup/specs_key"
+fi
+# copy ansible-vault key for specs repo into image
+if [ -n "${POTOS_GIT_SPECS_ANSIBLE_VAULT}" ] && [ -f /config/${POTOS_GIT_SPECS_ANSIBLE_VAULT} ]; then
+  cp "/config/${POTOS_GIT_SPECS_ANSIBLE_VAULT}" "${TMP_DIR}/setup/ansible_vault_key"
 fi
 
 # template diverse files for firstboot
