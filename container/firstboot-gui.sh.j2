@@ -24,7 +24,8 @@ disk_encryption.init_password: {{ POTOS_DISK_ENCRYPTION_INITIAL_PASSWORD }}
 specs.url: {{ POTOS_GIT_SPECS_URL }}
 specs.repo: {{ POTOS_GIT_SPECS_REPO }}
 specs.branch: {{ POTOS_GIT_SPECS_BRANCH }}
-
+specs.ssh_key: {% if POTOS_GIT_SPECS_SSH_KEY == "" %}not {% endif %}specified
+specs.ansible-vault-key-file: {% if POTOS_GIT_SPECS_ANSIBLE_VAULT == "" %}not {% endif %}specified
 initial_hostname: {{ POTOS_INITIAL_HOSTNAME }}
 
 initial_user.username: {{ POTOS_INITIAL_USERNAME }}
