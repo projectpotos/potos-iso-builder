@@ -5,7 +5,8 @@
 
 # Load variable from yml file else set default
 loadYmlVar (){
-  echo "$(yq eval -e "$1" /config/config.yml 2>/dev/null)" || echo "${@:2}"
+  val=$(yq eval -e "$1" /config/config.yml 2>/dev/null)
+  if [ $? -eq 0 ]; then echo "$val"; else echo "${@:2}"; fi
 }
 # Load variables from yaml file, else set default
 export POTOS_CLIENT_NAME=$(loadYmlVar '.client_name.long' "Potos Linux Client")
