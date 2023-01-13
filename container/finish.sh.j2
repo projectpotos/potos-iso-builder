@@ -8,8 +8,8 @@ cp -R /setup/* /opt/tmp
 
 # Define temporary work directory and 
 ANSIBLE_WORKDIR='/tmp/potos_ansible'
-ANSIBLE_GIT_URL='https://github.com/projectpotos/ansible-plays-potos.git'
-ANSIBLE_GIT_BRANCH='main'
+ANSIBLE_GIT_URL='{{ POTOS_GIT_SPECS_URL }}/{{ POTOS_GIT_SPECS_REPO }}.git'
+ANSIBLE_GIT_BRANCH='{{ POTOS_GIT_SPECS_BRANCH }}'
 
 mkdir -p "/etc/potos"
 mkdir -p "/var/log/{{ POTOS_CLIENT_SHORTNAME }}"
