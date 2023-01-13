@@ -72,7 +72,7 @@ sudo chown gnome-initial-setup /dev/tty2
 
 sudo tail -f /var/log/{{ POTOS_CLIENT_SHORTNAME }}/setup.log | tee /dev/tty2 | yad --fullscreen --no-buttons --title "{{ POTOS_CLIENT_NAME }} Setup" \
   --progress --enable-log --log-expanded --log-on-top --log-height 500 \
-  --text 'Please wait until the setup is finished' &
+  --text 'Please wait until setup prompts you for input or finishes.' &
 
 # Wait until the finish.sh background process exits and check its return code
 wait ${FINISH_CMD_PID}
