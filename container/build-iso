@@ -112,9 +112,9 @@ j2 grub.cfg.j2 > "${TMP_DIR}/boot/grub/grub.cfg"
 
 # copy logo into iso
 if [ -f /config/logo.png ]; then
-  cp logo.png "${TMP_DIR}/setup/logo.png"
-else
   cp /config/logo.png "${TMP_DIR}/setup/logo.png"
+else
+  cp logo.png "${TMP_DIR}/setup/logo.png"
 fi
 
 # copy ssh deploy key for specs repo into image
