@@ -24,7 +24,7 @@ menuentry 'UEFI Firmware Settings' {
 }
 #grub_platform set to bios expected
 else
-menuentry "Intall {{ POTOS_CLIENT_NAME }}" {
+menuentry "Install {{ POTOS_CLIENT_NAME }}" {
 	set gfxpayload=keep
 	linux	/casper/vmlinuz  fsck.mode=skip autoinstall ds=nocloud\;s=/cdrom/nocloud-bios/ ---
 	initrd	/casper/initrd
