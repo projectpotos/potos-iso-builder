@@ -5,7 +5,7 @@ autoinstall:
     preserve_sources_list: false
     primary:
       - arches: [default]
-        uri: "http://pkg.adfinis.com/ubuntu/"
+        uri: "http://archive.ubuntu.com/ubuntu"
   identity:
     hostname: {{ POTOS_INITIAL_HOSTNAME | default('potoshostname01') }}
     password: {{ POTOS_INITIAL_PASSWORD_HASH | default('$6$L36BiUuVCSipvlO8$oGI0C.LXZegkbftFkVDXXaasTM6zs9LM71BkqZToKw5aOZ7Yr70pkzH3P9Xz5R.n0ULJ0Zf8v5ZQ/eH8flDR7/') }}
