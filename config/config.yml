@@ -19,6 +19,7 @@ environment: "production"
 first_boot_ansible:
   runtype: "setup"
 full_unattended_install: false
+os: "jammy"
 output:
   version: "%Y%m%d"
   iso_filename: "potos-installer.iso"

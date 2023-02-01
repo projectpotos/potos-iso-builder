@@ -71,7 +71,6 @@ if config['os'] == "jammy":
         "ldap-utils",
         "yad",
     ]
-    config['packages']['addiso'] = ["python3-virtualenv", "yad"]
 elif config['os'] == "focal":
     config['input'] = {}
     config['input']['iso_filename'] = "ubuntu-20.04.5-live-server-amd64.iso"
@@ -89,7 +88,6 @@ elif config['os'] == "focal":
         "ldap-utils",
         "yad",
     ]
-    config['packages']['addiso'] = ["python3-virtualenv", "yad"]
 else:
     print("Invalid base os: %s"%(config['os']))
     print("Currently supported os are:")
@@ -167,10 +165,6 @@ if os.system("7z x '%s' -o'%s'"%(config['input']['iso_filename'], TMP_DIR)) != 0
 # remove no longer needed stuff
 if os.path.exists(os.path.join(TMP_DIR, "preseed")):
     shutil.rmtree(os.path.join(TMP_DIR, "preseed"))
-#if os.path.exists(os.path.join(TMP_DIR, "casper/installer.squashfs")):
-#    os.remove(os.path.join(TMP_DIR, "casper/installer.squashfs"))
-#if os.path.exists(os.path.join(TMP_DIR, "casper/installer.squashfs.gpg")):
-#    os.remove(os.path.join(TMP_DIR, "casper/installer.squashfs.gpg"))
 
 # make directory for files during autoinstall
 os.mkdir(os.path.join(TMP_DIR, "setup"))
@@ -212,7 +206,7 @@ with open(os.path.join(TMP_DIR, "nocloud-bios/user-data"), "w") as f:
 
 # create version file
 with open(
-    os.path.join(TMP_DIR, "setup/{config%s-version" % (config['client_name']['short'])), "w"
+    os.path.join(TMP_DIR, "setup/%s-version" % (config['client_name']['short'])), "w"
 ) as f:
     f.write(
         "%s %s (%s)\n"%(
