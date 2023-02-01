@@ -7,9 +7,9 @@ autoinstall:
       - arches: [default]
         uri: "http://archive.ubuntu.com/ubuntu"
   identity:
-    hostname: {{ POTOS_INITIAL_HOSTNAME | default('potoshostname01') }}
-    password: {{ POTOS_INITIAL_PASSWORD_HASH | default('$6$L36BiUuVCSipvlO8$oGI0C.LXZegkbftFkVDXXaasTM6zs9LM71BkqZToKw5aOZ7Yr70pkzH3P9Xz5R.n0ULJ0Zf8v5ZQ/eH8flDR7/') }}
-    username: {{ POTOS_INITIAL_USERNAME | default('admin') }}
+    hostname: {{ config['initial_hostname'] | default('potoshostname01') }}
+    password: {{ config['initial_user']['password'] | default('$6$L36BiUuVCSipvlO8$oGI0C.LXZegkbftFkVDXXaasTM6zs9LM71BkqZToKw5aOZ7Yr70pkzH3P9Xz5R.n0ULJ0Zf8v5ZQ/eH8flDR7/') }}
+    username: {{ config['initial_user']['username'] | default('admin') }}
   ssh:
     allow-pw: true
     authorized-keys: []
@@ -53,7 +53,7 @@ autoinstall:
         size: 1GB
         preserve: false
         number: 2
-{% if POTOS_DISK_ENCRYPTION_ENABLE is defined and POTOS_DISK_ENCRYPTION_ENABLE == 'true' %}
+{% if config['disk_encryption']['enable']  is defined and config['disk_encryption']['enable']  == 'true' %}
       - id: partition_crypt
         type: partition
         device: disk_primary
@@ -62,7 +62,7 @@ autoinstall:
         number: 3
       - id: dm-crypt_0
         volume: partition_crypt
-        key: {{ POTOS_DISK_ENCRYPTION_INITIAL_PASSWORD | default('install') }}
+        key: {{ config['disk_encryption']['init_password'] | default('install') }}
         preserve: false
         type: dm_crypt
       - id: lvm_volgroup_0
@@ -132,8 +132,7 @@ autoinstall:
         path: /
         type: mount
   packages:
-{% set packages = POTOS_PRE_INSTALL_PACKAGES.split('\n') %}
-{% for package in packages %}
+{% for package in config['packages']['preinstall']  %}
     - {{ package }}
 {% endfor %}
   late-commands:
@@ -150,10 +149,10 @@ autoinstall:
     - cp /cdrom/setup/default-netplan.yml /target/etc/netplan/01-network-manager-all.yaml
     - cp /cdrom/setup/gnome-sudo /target/etc/sudoers.d/01_gnome-initial-setup
     - mkdir -p /target/etc/potos/ && chown 0:0 /target/etc/potos/ && chmod 0700 /target/etc/potos/
-{% if POTOS_GIT_SPECS_SSH_KEY != "" %}
+{% if config['specs']['ssh_key'] != "" %}
     - cp /cdrom/setup/specs_key /target/etc/potos/specs_key && chown 0:0 /target/etc/potos/specs_key && chmod 0400 /target/etc/potos/specs_key 
 {% endif %}
-{% if POTOS_GIT_SPECS_ANSIBLE_VAULT != "" %}
+{% if config['specs']['ansible_vault_key_file'] != "" %}
     - cp /cdrom/setup/ansible_vault_key /target/etc/potos/ansible_vault_key && chown 0:0 /target/etc/potos/ansible_vault_key && chmod 0500 /target/etc/potos/ansible_vault_key 
 {% endif %}
     - cp -r /cdrom/setup /target/setup
