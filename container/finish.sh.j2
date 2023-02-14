@@ -12,17 +12,17 @@ ANSIBLE_GIT_URL='https://github.com/projectpotos/ansible-plays-potos.git'
 ANSIBLE_GIT_BRANCH='main'
 
 mkdir -p "/etc/potos"
-mkdir -p "/var/log/{{ POTOS_CLIENT_SHORTNAME }}"
+mkdir -p "/var/log/{{ config['client_name']['short']}}"
 
 cat > /etc/potos/specs_repo.yml <<EOF
 ---
-client_name: "{{ POTOS_CLIENT_NAME }}"
-client_short_name: "{{ POTOS_CLIENT_SHORTNAME }}"
-git_url: "{{ POTOS_GIT_SPECS_URL }}"
-git_repo: "{{ POTOS_GIT_SPECS_REPO }}"
-git_branch: "{{ POTOS_GIT_SPECS_BRANCH }}"
-git_ssh_key: "{{ POTOS_GIT_SPECS_SSH_KEY != "" }}"
-git_ansible_vault: "{{ POTOS_GIT_SPECS_ANSIBLE_VAULT != "" }}"
+client_name: "{{ config['client_name']['long'] }}"
+client_short_name: "{{ config['client_name']['short'] }}"
+git_url: "{{ config['specs']['url'] }}"
+git_repo: "{{ config['specs']['repo'] }}"
+git_branch: "{{ config['specs']['branch'] }}"
+git_ssh_key: "{{ config['specs']['ssh_key'] != "" }}"
+git_ansible_vault: "{{ config['specs']['ansible_vault_key_file'] != "" }}"
 EOF
 
 chown 0:0 /etc/potos/specs_repo.yml && chmod 0400 /etc/potos/specs_repo.yml
@@ -33,7 +33,7 @@ fi
 
 mkdir -p "${ANSIBLE_WORKDIR}"
 
-{% if POTOS_GIT_SPECS_SSH_KEY != "" %}
+{% if config['specs']['ssh_key'] != "" %}
 GIT_SSH_COMMAND='ssh -i /etc/potos/specs_key -o StrictHostKeyChecking=accept-new' git clone --single-branch --branch "${ANSIBLE_GIT_BRANCH}" "${ANSIBLE_GIT_URL}" "${ANSIBLE_WORKDIR}"
 {% else %}
 git clone --single-branch --branch "${ANSIBLE_GIT_BRANCH}" "${ANSIBLE_GIT_URL}" "${ANSIBLE_WORKDIR}"
@@ -55,8 +55,8 @@ source bin/activate
 pip3 install ansible-core==2.12.3
 
 {# Verbose ansible if develop #}
-ansible-playbook prepare.yml {% if POTOS_GIT_SPECS_ANSIBLE_VAULT != "" %}--vault-password-file=/etc/potos/ansible_vault_key {% endif %}{% if POTOS_ENV is defined and POTOS_ENV == 'develop' %}-vvv {% endif %}| sed -u 's/^/# /'
-ansible-playbook playbook.yml {% if POTOS_GIT_SPECS_ANSIBLE_VAULT != "" %}--vault-password-file=/etc/potos/ansible_vault_key {% endif %}{% if POTOS_ENV is defined and POTOS_ENV == 'develop' %}-vvv {% endif %}-e "{{ POTOS_CLIENT_SHORTNAME }}_runtype"="{{ POTOS_RUNTYPE }}" | sed -u 's/^/# /'
+ansible-playbook prepare.yml {% if config['specs']['ansible_vault_key_file'] != "" %}--vault-password-file=/etc/potos/ansible_vault_key {% endif %}{% if POTOS_ENV is defined and POTOS_ENV == 'develop' %}-vvv {% endif %}| sed -u 's/^/# /'
+ansible-playbook playbook.yml {% if config['specs']['ansible_vault_key_file'] != "" %}--vault-password-file=/etc/potos/ansible_vault_key {% endif %}{% if POTOS_ENV is defined and POTOS_ENV == 'develop' %}-vvv {% endif %}-e "{{ POTOS_CLIENT_SHORTNAME }}_runtype"="{{ POTOS_RUNTYPE }}" | sed -u 's/^/# /'
 
 deactivate
 

@@ -22,4 +22,4 @@ gsettings set org.gnome.desktop.input-sources mru-sources "[('xkb', '${KEYBOARD_
 # Write this settings permamently, keep them after reboot, as root user
 sudo sed -i 's/XKBLAYOUT=\".*"/XKBLAYOUT=\"'${KEYBOARD_LAYOUT}'\"/g' /etc/default/keyboard
 
-echo "${KEYBOARD_LAYOUT}" > /tmp/{{ POTOS_CLIENT_SHORTNAME }}_keyboardlayout
+echo "${KEYBOARD_LAYOUT}" > /tmp/{{ config['client_name']['short'] }}_keyboardlayout

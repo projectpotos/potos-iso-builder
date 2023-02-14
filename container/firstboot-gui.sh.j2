@@ -1,76 +1,67 @@
 #!/bin/bash
 
 {# Only ask for keyboard if not fully unattended #}
-{% if POTOS_FULL_UNATTENDED is not defined or POTOS_FULL_UNATTENDED != 'true' %}
+{% if config['full_unattended_install'] is not defined or config['full_unattended_install'] != 'true' %}
 /setup/change-keyboard-layout
 {% endif %}
 
 {# Include debugging infos only in develop builds #}
-{% if POTOS_ENV is defined and POTOS_ENV == 'develop' %}
-yad --fullscreen --title "{{ POTOS_CLIENT_NAME }} ENV {{ POTOS_ENV }}" \
+{% if config['environment'] is defined and config['environment'] == 'develop' %}
+yad --fullscreen --title "{{ config['client_name']['long'] }} ENV {{ config['environment'] }}" \
 --borders 20 --align center --button OK --image-on-top \
 --image=/setup/logo.png \
 --text \
-"Welcome to the last step of the {{ POTOS_CLIENT_NAME }} installation
+"Welcome to the last step of the {{ config['client_name']['long'] }} installation
 
-ENV {{ POTOS_ENV }} detected. Going to print some more output here and later. Ansible will run in -vvv mode.
+environment {{ config['environment'] }} detected. Going to print some more output here and later. Ansible will run in -vvv mode.
 
-client_name.long: {{ POTOS_CLIENT_NAME }}
-client_name.short: {{ POTOS_CLIENT_SHORTNAME }}
+client_name.long: {{ config['client_name']['long'] }}
+client_name.short: {{ config['client_name']['short'] }}
 
-disk_encryption.enable: {{ POTOS_DISK_ENCRYPTION_ENABLE }}
-disk_encryption.init_password: {{ POTOS_DISK_ENCRYPTION_INITIAL_PASSWORD }}
+disk_encryption.enable: {{ config['disk_encryption']['enable'] }}
+{% if config['disk_encryption']['enable'] -%}
+disk_encryption.init_password: {{ config['disk_encryption']['init_password'] }}
+{%- endif %}
+specs.url: {{ config['specs']['url'] }}
+specs.repo: {{ config['specs']['repo'] }}
+specs.branch: {{ config['specs']['branch'] }}
+specs.ssh_key: {% if config['specs']['ssh_key'] == "" %}not {% endif %}specified
+specs.ansible-vault-key-file: {% if config['specs']['ansible_vault_key_file'] == "" %}not {% endif %}specified
+initial_hostname: {{ config['initial_hostname'] }}
 
-specs.url: {{ POTOS_GIT_SPECS_URL }}
-specs.repo: {{ POTOS_GIT_SPECS_REPO }}
-specs.branch: {{ POTOS_GIT_SPECS_BRANCH }}
-specs.ssh_key: {% if POTOS_GIT_SPECS_SSH_KEY == "" %}not {% endif %}specified
-specs.ansible-vault-key-file: {% if POTOS_GIT_SPECS_ANSIBLE_VAULT == "" %}not {% endif %}specified
-initial_hostname: {{ POTOS_INITIAL_HOSTNAME }}
+initial_user.username: {{ config['initial_user'] }}
+initial_user.password: {{ config['initial_user'] }}
 
-initial_user.username: {{ POTOS_INITIAL_USERNAME }}
-initial_user.password: {{ POTOS_INITIAL_PASSWORD_HASH }}
+first_boot_ansible.runtype: {{ config['first_boot_ansible']['runtype'] }}
+full_unattended_install: {{ config['full_unattended_install'] }}
 
-environment: {{ POTOS_ENV }}
-first_boot_ansible.runtype: {{ POTOS_RUNTYPE }}
-full_unattended_install: {{ POTOS_FULL_UNATTENDED }}
-
-input.iso_filename: {{ INPUT_ISO_FILENAME }}
-input.iso_url: {{ INPUT_ISO_URL }}
-input.iso_sha256_filename: {{ INPUT_ISO_SHA256_FILENAME }}
-input.iso_sha256_url: {{ INPUT_ISO_SHA256_URL }}
-output.version: {{ POTOS_VERSION }}
-output.iso_filename: {{ OUTPUT_ISO_FILENAME }}
-
-preinstall_packages:
-{% set packages = POTOS_PRE_INSTALL_PACKAGES.split('\n') %}
-{% for package in packages %}
-  - {{ package }}
-{% endfor %}
+os: {{ config['os'] }}
+output.version: {{ config['output']['version'] }}
+output.iso_filename: {{ config['output']['iso_filename'] }}
 
 Click OK to proceed the installation.
 "
 {% endif %}
 {# Skip info screen for fully unattended installation #}
-{% if POTOS_FULL_UNATTENDED is not defined or POTOS_FULL_UNATTENDED != 'true' %}
-yad --fullscreen --title "{{ POTOS_CLIENT_NAME }} Setup" \
+{% if config['full_unattended_install'] is not defined or config['full_unattended_install'] != 'true' %}
+yad --fullscreen --title "{{ config['client_name']['long'] }} Setup" \
   --borders 20 --align center --button OK --image-on-top \
   --image=/setup/logo.png \
   --text \
-"Welcome to the last step of the {{ POTOS_CLIENT_NAME }} ({{ POTOS_VERSION }}) installation
+"Welcome to the last step of the {{ config['client_name']['long'] }} ({{ config['output']['version'] }}) installation
 
 Click OK to proceed the installation.
 "
 {% endif %}
-sudo mkdir -m 755 -p /var/log/{{ POTOS_CLIENT_SHORTNAME }}
-sudo touch /var/log/{{ POTOS_CLIENT_SHORTNAME }}/setup.log
-sudo -E bash -c "/setup/finish.sh &> /var/log/{{ POTOS_CLIENT_SHORTNAME }}/setup.log" &
+sudo mkdir -m 755 -p /var/log/{{ config['client_name']['short'] }}
+sudo touch /var/log/{{ config['client_name']['short'] }}/setup.log
+sudo -E bash -c "/setup/finish.sh &> /var/log/{{ config['client_name']['short'] }}/setup.log" &
 
 FINISH_CMD_PID=${!}
 
 sudo chown gnome-initial-setup /dev/tty2
 
-sudo tail -f /var/log/{{ POTOS_CLIENT_SHORTNAME }}/setup.log | tee /dev/tty2 | yad --fullscreen --no-buttons --title "{{ POTOS_CLIENT_NAME }} Setup" \
+sudo tail -f /var/log/{{ config['client_name']['short'] }}/setup.log | tee /dev/tty2 | yad --fullscreen --no-buttons --title "{{ config['client_name']['long'] }} Setup" \
   --progress --enable-log --log-expanded --log-on-top --log-height 500 \
   --text 'Please wait until the setup is finished' &
 
@@ -91,7 +82,7 @@ if [[ ${FINISH_CMD_RC} -ne 0 ]]; then
   esac
 fi
 
-sudo cat /var/log/{{ POTOS_CLIENT_SHORTNAME }}/setup.log | yad --fullscreen --title "{{ POTOS_CLIENT_NAME }} Setup" \
+sudo cat /var/log/{{ config['client_name']['short'] }}/setup.log | yad --fullscreen --title "{{ config['client_name']['long'] }} Setup" \
   --borders 20 --align center --button gtk-ok \
   --button "Shutdown":"sudo systemctl halt" \
   --text-info --tail \

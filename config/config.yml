@@ -19,18 +19,7 @@ environment: "production"
 first_boot_ansible:
   runtype: "setup"
 full_unattended_install: false
-input:
-  iso_filename: "ubuntu-22.04.1-live-server-amd64.iso"
-  iso_url: "https://releases.ubuntu.com/22.04/ubuntu-22.04.1-live-server-amd64.iso"
-  iso_sha256_filename: "SHA256SUMS"
-  iso_sha256_url: "https://releases.ubuntu.com/22.04/SHA256SUMS"
+os: "jammy"
 output:
-  version: "22.04"
+  version: "%Y%m%d"
   iso_filename: "potos-installer.iso"
-preinstall_packages:
-  - python3-virtualenv
-  - linux-generic-hwe-22.04
-  - ubuntu-desktop
-  - plymouth-theme-ubuntu-logo
-  - ldap-utils
-  - yad

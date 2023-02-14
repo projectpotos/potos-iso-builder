@@ -1,0 +1,8 @@
+default prod
+label prod
+  menu label ^Install {{ config['client_name']['long'] }}
+  kernel /casper/vmlinuz
+  append   initrd=/casper/initrd quiet fsck.mode=skip autoinstall ds=nocloud;s=/cdrom/nocloud-bios/ ---
+label hd
+  menu label ^Boot from first hard disk
+  localboot 0x80
