@@ -56,9 +56,9 @@ REQIREMENTS = ["7z", "gfxboot", "xorriso", "wget", "curl", "sha256sum"]
 # switch iso by selected os
 if config['os'] == "jammy":
     config['input'] = {}
-    config['input']['iso_filename'] = "ubuntu-22.04.1-live-server-amd64.iso"
+    config['input']['iso_filename'] = "ubuntu-22.04.2-live-server-amd64.iso"
     config['input']['iso_url'] = (
-        "https://releases.ubuntu.com/22.04/ubuntu-22.04.1-live-server-amd64.iso"
+        "https://releases.ubuntu.com/22.04/ubuntu-22.04.2-live-server-amd64.iso"
     )
     config['input']['sha256_filename'] = "SHA256SUMS"
     config['input']['sha256_url'] = "https://releases.ubuntu.com/22.04/SHA256SUMS"
