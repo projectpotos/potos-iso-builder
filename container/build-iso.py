@@ -291,8 +291,8 @@ os.system(
 # as default try to use eltorito boot image
 boot_image = "/boot/grub/i386-pc/eltorito.img"
 
-# if eltorito is not available in the iso, fall back to isolinux
-if not os.path.exists(os.path.join(TMP_DIR, boot_image)):
+# if eltorito is not available in the iso, fall back to isolinux, strip first slash
+if not os.path.exists(os.path.join(TMP_DIR, boot_image.lstrip('/'))):
     with open(os.path.join(TMP_DIR, "isolinux/txt.cfg"), "w") as f:
         f.write(j2.get_template("isolinux.cfg.j2").render(config=config))
     if os.path.exists("/config/splash.pcx"):
