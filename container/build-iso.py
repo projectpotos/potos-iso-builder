@@ -70,7 +70,7 @@ if config['os'] == "jammy":
         "ldap-utils",
         "yad",
 ]
-    #Test the URL, if 404 use old-relesaes.ubuntu.com
+    #Test the URL, if 404 use old-releases.ubuntu.com
     response = requests.get(config['input']['iso_url'])
     if response.status_code == 404:
         #extract figures in between first both dashes.
