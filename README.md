@@ -3,7 +3,7 @@
 ## Structure
 This repo contains the iso builder for Potos. 
  * [`container`](container) contains the source for the docker image `ghcr.io/projectpotos/potos-iso-builder`
- * [`config`](container) contains an example config
+ * [`config`](config) contains an example config
  * [`output`](output) is the directory where using the default commands the final iso is stored into
 
 
