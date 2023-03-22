@@ -81,12 +81,12 @@ elif config['os'] == "focal":
     config['input']['sha256_url'] = "https://releases.ubuntu.com/20.04/SHA256SUMS"
     config['packages'] = {}
     config['packages']['preinstall'] = [
-        "python3-virtualenv",
         "linux-generic-hwe-20.04",
         "ubuntu-desktop",
         "plymouth-theme-ubuntu-logo",
         "ldap-utils",
         "yad",
+        "python3-virtualenv",
     ]
 else:
     print("Invalid base os: %s"%(config['os']))
