@@ -53,7 +53,7 @@ autoinstall:
         size: 1GB
         preserve: false
         number: 2
-{% if config['disk_encryption']['enable']  is defined and config['disk_encryption']['enable']  == 'true' %}
+{% if config['disk_encryption']['enable']  is defined and config['disk_encryption']['enable']  == true %}
       - id: partition_crypt
         type: partition
         device: disk_primary
@@ -131,11 +131,11 @@ autoinstall:
         device: format_root
         path: /
         type: mount
-  packages:
-{% for package in config['packages']['preinstall']  %}
-    - {{ package }}
-{% endfor %}
   late-commands:
+    - curtin in-target --target=/target -- apt update
+{% for package in config['packages']['preinstall']  %}
+    - curtin in-target --target=/target -- apt install {{ package }} -y
+{% endfor %}
     - |
       for arg in $(cat /proc/cmdline); do
         case "${arg}" in
