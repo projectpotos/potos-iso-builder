@@ -103,13 +103,13 @@ autoinstall:
       - id: lvm_volume_swap
         name: swap
         volgroup: lvm_volgroup_0
-        size: 1G
+        size: 16G
         preserve: false
         type: lvm_partition
       - id: lvm_volume_root
         name: root
         volgroup: lvm_volgroup_0
-        size: -1
+        size: 50G
         preserve: false
         type: lvm_partition
 {% if autoinstall_type == 'uefi' %}
