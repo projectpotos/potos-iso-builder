@@ -20,6 +20,9 @@ export POTOS_GIT_SPECS_ANSIBLE_VAULT=$(loadYmlVar '.specs.ansible-vault-key-file
 export POTOS_INITIAL_HOSTNAME=$(loadYmlVar '.initial_hostname' "potoshostname01")
 export POTOS_INITIAL_USERNAME=$(loadYmlVar '.initial_user.username' "admin")
 export POTOS_INITIAL_PASSWORD_HASH=$(loadYmlVar '.initial_user.password' '$6$L36BiUuVCSipvlO8$oGI0C.LXZegkbftFkVDXXaasTM6zs9LM71BkqZToKw5aOZ7Yr70pkzH3P9Xz5R.n0ULJ0Zf8v5ZQ/eH8flDR7/')
+export POTOS_WIFI_INTERFACE=$(loadYmlVar 'wifi.interface' "nowifi")
+export POTOS_WIFI_SSID=$(loadYmlVar 'wifi.ssid' "nossid")
+export POTOS_WIFI_PW=$(loadYmlVar 'wifi.pw' "noPW")
 export POTOS_ENV=$(loadYmlVar '.environment' "production")
 export POTOS_RUNTYPE=$(loadYmlVar '.first_boot_ansible.runtype' "setup")
 export POTOS_FULL_UNATTENDED=$(loadYmlVar '.full_unattended_install' "false")
@@ -42,7 +45,7 @@ REQUIREMENTS="7z gfxboot xorriso wget curl sha256sum j2"
 
 # Print environment info
 if [[ ${POTOS_ENV} == "develop" ]]; then
-  echo "*** POTOS_ENV is ${POTOS_ENV}, going to print some more informations for you:"
+  echo "*** POTOS_ENV is ${POTOS_ENV}, going to print some more information for you:"
   printenv | grep -i potos
   echo "POTOS_PRE_INSTALL_PACKAGES="
   for t in ${POTOS_PRE_INSTALL_PACKAGES[@]}; do echo "- $t"; done

@@ -34,6 +34,10 @@ with open("/config/config.yml", "r") as f:
         config['initial_user'] = {}
         config['initial_user']['username'] = ymlconfig.get("initial_user",{}).get('username',"admin")
         config['initial_user']['password'] = ymlconfig.get("initial_user",{}).get('password',"$6$L36BiUuVCSipvlO8$oGI0C.LXZegkbftFkVDXXaasTM6zs9LM71BkqZToKw5aOZ7Yr70pkzH3P9Xz5R.n0ULJ0Zf8v5ZQ/eH8flDR7/")
+        config['wifi'] = {}
+        config['wifi']['interface'] = ymlconfig.get("wifi",{}).get('interface',"wlan0")
+        config['wifi']['ssid'] = ymlconfig.get("wifi",{}).get('ssid',"yourwifissid")
+        config['wifi']['pw'] = ymlconfig.get("wifi",{}).get('pw',"yourwifipassword")
         config['environment'] = ymlconfig.get("environment","production")
         config['first_boot_ansible'] = {}
         config['first_boot_ansible']['runtype'] = ymlconfig.get("first_boot_ansible",{}).get('runtype',"setup")
@@ -101,7 +105,7 @@ else:
 # Print config info
 if config['environment'] == "develop":
     print(
-        "*** config.environment is %s, going to print some more informations for you:"%(
+        "*** config.environment is %s, going to print some more information for you:"%(
             config['environment'],
         )
     )
