@@ -1,24 +1,24 @@
 ---
 client_name:
-  long: "m Linux Client"
-  short: "mlc"
+  long: "Potos Linux Client"
+  short: "potos"
 disk_encryption:
-  enable: true
+  enable: false
   init_password: "install"
 specs:
-  url: "https://github.com/nis65/"
-  repo: "ansible-specs-potos-mlc"
+  url: "https://github.com/projectpotos/"
+  repo: "ansible-specs-potos"
   branch: "main"
   ssh_key: ""  # eg. ssh_key: "potos_specs_key" for `potos_specs_key` in this config directory
   ansible-vault-key-file: ""  # same as ssh_key, but for the file with the ansible-vault key
-initial_hostname: "mlc0"
+initial_hostname: "potoshostname01"
 initial_user:
   username: "admin"
   password: "$6$L36BiUuVCSipvlO8$oGI0C.LXZegkbftFkVDXXaasTM6zs9LM71BkqZToKw5aOZ7Yr70pkzH3P9Xz5R.n0ULJ0Zf8v5ZQ/eH8flDR7/"
-environment: "develop"
+environment: "production"
 first_boot_ansible:
   runtype: "setup"
-full_unattended_install: true
+full_unattended_install: false
 wifi:
   interface: "wlp1s0"
   ssid: "REDACTED"
@@ -26,4 +26,4 @@ wifi:
 os: "jammy"
 output:
   version: "%Y%m%d"
-  iso_filename: "potos-mlc-installer.iso"
+  iso_filename: "potos-installer.iso"
