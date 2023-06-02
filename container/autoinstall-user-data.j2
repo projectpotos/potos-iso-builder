@@ -10,7 +10,7 @@ autoinstall:
     hostname: {{ config['initial_hostname'] | default('potoshostname01') }}
     password: {{ config['initial_user']['password'] | default('$6$L36BiUuVCSipvlO8$oGI0C.LXZegkbftFkVDXXaasTM6zs9LM71BkqZToKw5aOZ7Yr70pkzH3P9Xz5R.n0ULJ0Zf8v5ZQ/eH8flDR7/') }}
     username: {{ config['initial_user']['username'] | default('admin') }}
-{% if config['wifi'] is defined %}
+{% if config['wifi']['ssid'] is defined %}
   early-commands:
     - apt-get -y install wpasupplicant
   drivers:
