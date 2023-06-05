@@ -127,6 +127,10 @@ autoinstall:
         device: format_boot
         path: /boot
         type: mount
+      - id: mount_swap
+        device: format_swap
+        path: none
+        type: mount
       - id: mount_root
         device: format_root
         path: /
