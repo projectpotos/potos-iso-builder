@@ -5,6 +5,7 @@ name: Build & Publish
 on:
   push:
   pull_request:
+  workflow_dispatch:
   release:
     types:
       - created
