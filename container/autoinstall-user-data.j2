@@ -168,6 +168,7 @@ autoinstall:
     - sed -ie 's|GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT="quiet splash gnome.initial-setup=1 systemd.debug_shell"|' /target/etc/default/grub
     - rm -f /target/etc/netplan/*
     - cp /cdrom/setup/default-netplan.yml /target/etc/netplan/01-network-manager-all.yaml
+    - curtin in-target --target=/target -- rm /etc/systemd/system/network-online.target.wants/systemd-networkd-wait-online.service
     - cp /cdrom/setup/gnome-sudo /target/etc/sudoers.d/01_gnome-initial-setup
     - mkdir -p /target/etc/potos/ && chown 0:0 /target/etc/potos/ && chmod 0700 /target/etc/potos/
 {% if config['specs']['ssh_key'] != "" %}
