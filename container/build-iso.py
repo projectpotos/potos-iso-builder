@@ -4,6 +4,7 @@ import yaml
 import os
 import shutil
 import jinja2
+import requests
 from datetime import date
 import subprocess
 from pprint import pprint
@@ -61,9 +62,7 @@ REQIREMENTS = ["7z", "gfxboot", "xorriso", "wget", "curl", "sha256sum"]
 if config['os'] == "jammy":
     config['input'] = {}
     config['input']['iso_filename'] = "ubuntu-22.04.3-live-server-amd64.iso"
-    config['input']['iso_url'] = (
-        "https://releases.ubuntu.com/22.04/ubuntu-22.04.3-live-server-amd64.iso"
-    )
+    config['input']['iso_url'] = "https://releases.ubuntu.com/22.04/" + config['input']['iso_filename']
     config['input']['sha256_filename'] = "SHA256SUMS"
     config['input']['sha256_url'] = "https://releases.ubuntu.com/22.04/SHA256SUMS"
     config['packages'] = {}
@@ -75,12 +74,18 @@ if config['os'] == "jammy":
         "ldap-utils",
         "yad",
     ]
+    #Test the URL, if 404 use old-releases.ubuntu.com
+    response = requests.get(config['input']['iso_url'])
+    if response.status_code == 404:
+        #extract figures in between first both dashes.
+        version = config['input']['iso_filename'].split("-")[1]
+        config['input']['iso_url'] = "https://releases.ubuntu.com/22.04/" + config['input']['iso_filename']
+        config['input']['iso_url'] = "https://old-releases.ubuntu.com/releases/" + version + "/" + config['input']['iso_filename']
+        config['input']['sha256_url'] = "https://old-releases.ubuntu.com/releases/" + version + "/" + config['input']['sha256_filename']
 elif config['os'] == "focal":
     config['input'] = {}
     config['input']['iso_filename'] = "ubuntu-20.04.6-live-server-amd64.iso"
-    config['input']['iso_url'] = (
-        "https://releases.ubuntu.com/20.04/ubuntu-20.04.6-live-server-amd64.iso"
-    )
+    config['input']['iso_url'] = "https://releases.ubuntu.com/20.04/" + config['input']['iso_filename'] 
     config['input']['sha256_filename'] = "SHA256SUMS"
     config['input']['sha256_url'] = "https://releases.ubuntu.com/20.04/SHA256SUMS"
     config['packages'] = {}
