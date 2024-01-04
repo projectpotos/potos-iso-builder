@@ -35,6 +35,10 @@ with open("/config/config.yml", "r") as f:
         config['initial_user'] = {}
         config['initial_user']['username'] = ymlconfig.get("initial_user",{}).get('username',"admin")
         config['initial_user']['password'] = ymlconfig.get("initial_user",{}).get('password',"$6$L36BiUuVCSipvlO8$oGI0C.LXZegkbftFkVDXXaasTM6zs9LM71BkqZToKw5aOZ7Yr70pkzH3P9Xz5R.n0ULJ0Zf8v5ZQ/eH8flDR7/")
+        config['wifi'] = {}
+        config['wifi']['interface'] = ymlconfig.get("wifi",{}).get('interface')
+        config['wifi']['ssid'] = ymlconfig.get("wifi",{}).get('ssid')
+        config['wifi']['pw'] = ymlconfig.get("wifi",{}).get('pw')
         config['environment'] = ymlconfig.get("environment","production")
         config['first_boot_ansible'] = {}
         config['first_boot_ansible']['runtype'] = ymlconfig.get("first_boot_ansible",{}).get('runtype',"setup")
@@ -57,7 +61,7 @@ REQIREMENTS = ["7z", "gfxboot", "xorriso", "wget", "curl", "sha256sum"]
 # switch iso by selected os
 if config['os'] == "jammy":
     config['input'] = {}
-    config['input']['iso_filename'] = "ubuntu-22.04.2-live-server-amd64.iso"
+    config['input']['iso_filename'] = "ubuntu-22.04.3-live-server-amd64.iso"
     config['input']['iso_url'] = "https://releases.ubuntu.com/22.04/" + config['input']['iso_filename']
     config['input']['sha256_filename'] = "SHA256SUMS"
     config['input']['sha256_url'] = "https://releases.ubuntu.com/22.04/SHA256SUMS"
@@ -69,7 +73,7 @@ if config['os'] == "jammy":
         "plymouth-theme-ubuntu-logo",
         "ldap-utils",
         "yad",
-]
+    ]
     #Test the URL, if 404 use old-releases.ubuntu.com
     response = requests.get(config['input']['iso_url'])
     if response.status_code == 404:
@@ -80,18 +84,18 @@ if config['os'] == "jammy":
         config['input']['sha256_url'] = "https://old-releases.ubuntu.com/releases/" + version + "/" + config['input']['sha256_filename']
 elif config['os'] == "focal":
     config['input'] = {}
-    config['input']['iso_filename'] = "ubuntu-20.04.5-live-server-amd64.iso"
+    config['input']['iso_filename'] = "ubuntu-20.04.6-live-server-amd64.iso"
     config['input']['iso_url'] = "https://releases.ubuntu.com/20.04/" + config['input']['iso_filename'] 
     config['input']['sha256_filename'] = "SHA256SUMS"
     config['input']['sha256_url'] = "https://releases.ubuntu.com/20.04/SHA256SUMS"
     config['packages'] = {}
     config['packages']['preinstall'] = [
-        "python3-virtualenv",
         "linux-generic-hwe-20.04",
         "ubuntu-desktop",
         "plymouth-theme-ubuntu-logo",
         "ldap-utils",
         "yad",
+        "python3-virtualenv",
     ]
 else:
     print("Invalid base os: %s"%(config['os']))
@@ -106,7 +110,7 @@ else:
 # Print config info
 if config['environment'] == "develop":
     print(
-        "*** config.environment is %s, going to print some more informations for you:"%(
+        "*** config.environment is %s, going to print some more information for you:"%(
             config['environment'],
         )
     )

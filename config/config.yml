@@ -19,6 +19,10 @@ environment: "production"
 first_boot_ansible:
   runtype: "setup"
 full_unattended_install: false
+# wifi:
+#   interface: "wlp1s0"
+#   ssid: "REDACTED"
+#   pw: "REDACTED"
 os: "jammy"
 output:
   version: "%Y%m%d"

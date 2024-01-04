@@ -10,6 +10,23 @@ autoinstall:
     hostname: {{ config['initial_hostname'] | default('potoshostname01') }}
     password: {{ config['initial_user']['password'] | default('$6$L36BiUuVCSipvlO8$oGI0C.LXZegkbftFkVDXXaasTM6zs9LM71BkqZToKw5aOZ7Yr70pkzH3P9Xz5R.n0ULJ0Zf8v5ZQ/eH8flDR7/') }}
     username: {{ config['initial_user']['username'] | default('admin') }}
+{% if config['wifi']['interface'] is defined and config['wifi']['interface'] != None %}
+  early-commands:
+    - apt-get -y install wpasupplicant
+  drivers:
+    install: true
+  network:
+    # https://ubuntu.com/server/docs/install/autoinstall-reference#network
+    # https://netplan.readthedocs.io/en/stable/netplan-yaml/#properties-for-device-type-wifis
+    version: 2
+    wifis:
+      {{ config['wifi']['interface'] }}:
+        access-points:
+          "{{ config['wifi']['ssid'] }}":
+            password: "{{ config['wifi']['pw'] }}"
+        dhcp4: true
+        dhcp6: true
+{% endif %}
   ssh:
     allow-pw: true
     authorized-keys: []
@@ -53,7 +70,7 @@ autoinstall:
         size: 1GB
         preserve: false
         number: 2
-{% if config['disk_encryption']['enable']  is defined and config['disk_encryption']['enable']  == 'true' %}
+{% if config['disk_encryption']['enable']  is defined and config['disk_encryption']['enable']  == true %}
       - id: partition_crypt
         type: partition
         device: disk_primary
@@ -127,15 +144,19 @@ autoinstall:
         device: format_boot
         path: /boot
         type: mount
+      - id: mount_swap
+        device: format_swap
+        path: none
+        type: mount
       - id: mount_root
         device: format_root
         path: /
         type: mount
-  packages:
-{% for package in config['packages']['preinstall']  %}
-    - {{ package }}
-{% endfor %}
   late-commands:
+    - curtin in-target --target=/target -- apt update
+{% for package in config['packages']['preinstall']  %}
+    - curtin in-target --target=/target -- apt install {{ package }} -y
+{% endfor %}
     - |
       for arg in $(cat /proc/cmdline); do
         case "${arg}" in
@@ -147,6 +168,7 @@ autoinstall:
     - sed -ie 's|GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT="quiet splash gnome.initial-setup=1 systemd.debug_shell"|' /target/etc/default/grub
     - rm -f /target/etc/netplan/*
     - cp /cdrom/setup/default-netplan.yml /target/etc/netplan/01-network-manager-all.yaml
+    - curtin in-target --target=/target -- rm /etc/systemd/system/network-online.target.wants/systemd-networkd-wait-online.service
     - cp /cdrom/setup/gnome-sudo /target/etc/sudoers.d/01_gnome-initial-setup
     - mkdir -p /target/etc/potos/ && chown 0:0 /target/etc/potos/ && chmod 0700 /target/etc/potos/
 {% if config['specs']['ssh_key'] != "" %}
