@@ -169,6 +169,7 @@ autoinstall:
     - rm -f /target/etc/netplan/*
     - cp /cdrom/setup/default-netplan.yml /target/etc/netplan/01-network-manager-all.yaml
     - curtin in-target --target=/target -- rm /etc/systemd/system/network-online.target.wants/systemd-networkd-wait-online.service
+    - curtin in-target --target=/target -- ln -s /dev/null /etc/systemd/system/systemd-networkd.service
     - cp /cdrom/setup/gnome-sudo /target/etc/sudoers.d/01_gnome-initial-setup
     - mkdir -p /target/etc/potos/ && chown 0:0 /target/etc/potos/ && chmod 0700 /target/etc/potos/
 {% if config['specs']['ssh_key'] != "" %}
