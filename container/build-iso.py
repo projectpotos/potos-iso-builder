@@ -68,19 +68,19 @@ def get_latest_minor_release(version):
     match = re.search(rf"ubuntu-{version}\.(\d+)-live-server-amd64\.iso", response.text)
 
     if match:
-        return match.group(1)
+        return str(match.group(1))
 
     raise ValueError(f"Could not find a valid minor release for Ubuntu {version}.")
 
 # switch iso by selected os
 if config['os'] == "noble":
-    version = 24.04
+    version = "24.04"
     minor_version = get_latest_minor_release(version)
     config['input'] = {}
-    config['input']['iso_filename'] = f"ubuntu-{version}.{minor_version}-live-server-amd64.iso"
-    config['input']['iso_url'] = "https://releases.ubuntu.com/24.04/" + config['input']['iso_filename']
+    config['input']['iso_filename'] = "ubuntu-" + version + "." + minor_version + "-live-server-amd64.iso"
+    config['input']['iso_url'] = "https://releases.ubuntu.com/"+ version + "/" +config['input']['iso_filename']
     config['input']['sha256_filename'] = "SHA256SUMS"
-    config['input']['sha256_url'] = "https://releases.ubuntu.com/24.04/SHA256SUMS"
+    config['input']['sha256_url'] = "https://releases.ubuntu.com/" + version + "/SHA256SUMS"
     config['packages'] = {}
     config['packages']['preinstall'] = [
         "python3-virtualenv",
@@ -95,17 +95,17 @@ if config['os'] == "noble":
     if response.status_code == 404:
         #extract figures in between first both dashes.
         version = config['input']['iso_filename'].split("-")[1]
-        config['input']['iso_url'] = "https://releases.ubuntu.com/24.04/" + config['input']['iso_filename']
+        config['input']['iso_url'] = "https://releases.ubuntu.com/"+ version + "/" +config['input']['iso_filename']
         config['input']['iso_url'] = "https://old-releases.ubuntu.com/releases/" + version + "/" + config['input']['iso_filename']
         config['input']['sha256_url'] = "https://old-releases.ubuntu.com/releases/" + version + "/" + config['input']['sha256_filename']
 elif config['os'] == "jammy":
-    version = 22.04
+    version = "22.04"
     minor_version = get_latest_minor_release(version)
     config['input'] = {}
-    config['input']['iso_filename'] = f"ubuntu-{version}.{minor_version}-live-server-amd64.iso"
-    config['input']['iso_url'] = "https://releases.ubuntu.com/22.04/" + config['input']['iso_filename']
+    config['input']['iso_filename'] = "ubuntu-" + version + "." + minor_version + "-live-server-amd64.iso"
+    config['input']['iso_url'] = "https://releases.ubuntu.com/"+ version + "/" +config['input']['iso_filename']
     config['input']['sha256_filename'] = "SHA256SUMS"
-    config['input']['sha256_url'] = "https://releases.ubuntu.com/22.04/SHA256SUMS"
+    config['input']['sha256_url'] = "https://releases.ubuntu.com/" + version + "/SHA256SUMS"
     config['packages'] = {}
     config['packages']['preinstall'] = [
         "python3-virtualenv",

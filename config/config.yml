@@ -23,7 +23,7 @@ full_unattended_install: false
 #   interface: "wlp1s0"
 #   ssid: "REDACTED"
 #   pw: "REDACTED"
-os: "jammy"
+os: "noble"
 output:
   version: "%Y%m%d"
   iso_filename: "potos-installer.iso"
