@@ -171,6 +171,9 @@ autoinstall:
     - curtin in-target --target=/target -- rm /etc/systemd/system/network-online.target.wants/systemd-networkd-wait-online.service
     - curtin in-target --target=/target -- ln -s /dev/null /etc/systemd/system/systemd-networkd.service
     - cp /cdrom/setup/gnome-sudo /target/etc/sudoers.d/01_gnome-initial-setup
+{% if config['os'] == "noble" %}
+    - cp /cdrom/setup/99needrestart /target/etc/apt/apt.conf.d/
+{% endif %}
     - mkdir -p /target/etc/potos/ && chown 0:0 /target/etc/potos/ && chmod 0700 /target/etc/potos/
 {% if config['specs']['ssh_key'] != "" %}
     - cp /cdrom/setup/specs_key /target/etc/potos/specs_key && chown 0:0 /target/etc/potos/specs_key && chmod 0400 /target/etc/potos/specs_key 

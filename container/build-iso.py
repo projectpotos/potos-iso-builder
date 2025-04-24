@@ -202,6 +202,9 @@ shutil.copy("default-netplan.yml", os.path.join(TMP_DIR, "setup/default-netplan.
 # copy Gnome initial setup sudoers rule into iso
 shutil.copy("gnome-sudo", os.path.join(TMP_DIR, "setup/gnome-sudo"))
 
+# copy needrestart workaround into iso (https://discourse.ubuntu.com/t/needrestart-changes-in-ubuntu-24-04-service-restarts)
+shutil.copy("99needrestart", os.path.join(TMP_DIR, "setup/99needrestart"))
+
 # template autoinstall files
 os.mkdir(os.path.join(TMP_DIR, "nocloud-uefi"))
 with open(os.path.join(TMP_DIR, "nocloud-uefi/meta-data"), "w") as f:
