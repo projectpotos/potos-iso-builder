@@ -5,6 +5,7 @@ import os
 import shutil
 import jinja2
 import requests
+import re
 from datetime import date
 import subprocess
 from pprint import pprint
@@ -58,13 +59,53 @@ with open("/config/config.yml", "r") as f:
 TMP_DIR = "iso"
 REQIREMENTS = ["7z", "gfxboot", "xorriso", "wget", "curl", "sha256sum"]
 
+def get_latest_minor_release(version):
+    url = f"https://releases.ubuntu.com/{version}/"
+    response = requests.get(url)
+    response.raise_for_status()
+
+    # Regex to match the minor release number in the ISO filename
+    match = re.search(rf"ubuntu-{version}\.(\d+)-live-server-amd64\.iso", response.text)
+
+    if match:
+        return str(match.group(1))
+
+    raise ValueError(f"Could not find a valid minor release for Ubuntu {version}.")
+
 # switch iso by selected os
-if config['os'] == "jammy":
+if config['os'] == "noble":
+    version = "24.04"
+    minor_version = get_latest_minor_release(version)
     config['input'] = {}
-    config['input']['iso_filename'] = "ubuntu-22.04.3-live-server-amd64.iso"
-    config['input']['iso_url'] = "https://releases.ubuntu.com/22.04/" + config['input']['iso_filename']
+    config['input']['iso_filename'] = "ubuntu-" + version + "." + minor_version + "-live-server-amd64.iso"
+    config['input']['iso_url'] = "https://releases.ubuntu.com/"+ version + "/" +config['input']['iso_filename']
     config['input']['sha256_filename'] = "SHA256SUMS"
-    config['input']['sha256_url'] = "https://releases.ubuntu.com/22.04/SHA256SUMS"
+    config['input']['sha256_url'] = "https://releases.ubuntu.com/" + version + "/SHA256SUMS"
+    config['packages'] = {}
+    config['packages']['preinstall'] = [
+        "python3-virtualenv",
+        "linux-generic-hwe-24.04",
+        "ubuntu-desktop",
+        "plymouth-theme-ubuntu-gnome-logo",
+        "ldap-utils",
+        "yad",
+    ]
+    #Test the URL, if 404 use old-releases.ubuntu.com
+    response = requests.get(config['input']['iso_url'])
+    if response.status_code == 404:
+        #extract figures in between first both dashes.
+        version = config['input']['iso_filename'].split("-")[1]
+        config['input']['iso_url'] = "https://releases.ubuntu.com/"+ version + "/" +config['input']['iso_filename']
+        config['input']['iso_url'] = "https://old-releases.ubuntu.com/releases/" + version + "/" + config['input']['iso_filename']
+        config['input']['sha256_url'] = "https://old-releases.ubuntu.com/releases/" + version + "/" + config['input']['sha256_filename']
+elif config['os'] == "jammy":
+    version = "22.04"
+    minor_version = get_latest_minor_release(version)
+    config['input'] = {}
+    config['input']['iso_filename'] = "ubuntu-" + version + "." + minor_version + "-live-server-amd64.iso"
+    config['input']['iso_url'] = "https://releases.ubuntu.com/"+ version + "/" +config['input']['iso_filename']
+    config['input']['sha256_filename'] = "SHA256SUMS"
+    config['input']['sha256_url'] = "https://releases.ubuntu.com/" + version + "/SHA256SUMS"
     config['packages'] = {}
     config['packages']['preinstall'] = [
         "python3-virtualenv",
@@ -74,33 +115,10 @@ if config['os'] == "jammy":
         "ldap-utils",
         "yad",
     ]
-    #Test the URL, if 404 use old-releases.ubuntu.com
-    response = requests.get(config['input']['iso_url'])
-    if response.status_code == 404:
-        #extract figures in between first both dashes.
-        version = config['input']['iso_filename'].split("-")[1]
-        config['input']['iso_url'] = "https://releases.ubuntu.com/22.04/" + config['input']['iso_filename']
-        config['input']['iso_url'] = "https://old-releases.ubuntu.com/releases/" + version + "/" + config['input']['iso_filename']
-        config['input']['sha256_url'] = "https://old-releases.ubuntu.com/releases/" + version + "/" + config['input']['sha256_filename']
-elif config['os'] == "focal":
-    config['input'] = {}
-    config['input']['iso_filename'] = "ubuntu-20.04.6-live-server-amd64.iso"
-    config['input']['iso_url'] = "https://releases.ubuntu.com/20.04/" + config['input']['iso_filename'] 
-    config['input']['sha256_filename'] = "SHA256SUMS"
-    config['input']['sha256_url'] = "https://releases.ubuntu.com/20.04/SHA256SUMS"
-    config['packages'] = {}
-    config['packages']['preinstall'] = [
-        "linux-generic-hwe-20.04",
-        "ubuntu-desktop",
-        "plymouth-theme-ubuntu-logo",
-        "ldap-utils",
-        "yad",
-        "python3-virtualenv",
-    ]
 else:
     print("Invalid base os: %s"%(config['os']))
     print("Currently supported os are:")
-    print(" * Ubuntu: 'jammy', 'focal'")
+    print(" * Ubuntu: 'noble', 'jammy'")
     exit(1)
 
 ######
@@ -183,6 +201,9 @@ shutil.copy("default-netplan.yml", os.path.join(TMP_DIR, "setup/default-netplan.
 
 # copy Gnome initial setup sudoers rule into iso
 shutil.copy("gnome-sudo", os.path.join(TMP_DIR, "setup/gnome-sudo"))
+
+# copy needrestart workaround into iso (https://discourse.ubuntu.com/t/needrestart-changes-in-ubuntu-24-04-service-restarts)
+shutil.copy("99needrestart", os.path.join(TMP_DIR, "setup/99needrestart"))
 
 # template autoinstall files
 os.mkdir(os.path.join(TMP_DIR, "nocloud-uefi"))
