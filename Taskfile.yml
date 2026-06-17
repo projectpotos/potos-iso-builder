@@ -1,0 +1,81 @@
+---
+version: "3"
+
+vars:
+  USE_PODMAN: "true"
+  _PODMAN_SOCK: "unix:///run/user/{{.UID}}/podman/podman.sock"
+  UID:
+    sh: id -u
+  # Path to the potos.base ansible collection source tree. Override with
+  # `task build:collection COLLECTION_PATH=/some/other/path` if needed.
+  COLLECTION_PATH: '{{.COLLECTION_PATH | default "../ansible-collection-potos.base"}}'
+  COLLECTIONS_OUT: "input/collections"
+
+env:
+  DOCKER_HOST:
+    sh: |
+      if [ "{{.USE_PODMAN}}" = "true" ] && [ -z "$DOCKER_HOST" ]; then
+        echo "unix:///run/user/{{.UID}}/podman/podman.sock"
+      else
+        echo "${DOCKER_HOST:-}"
+      fi
+
+tasks:
+  build:collection:
+    desc: Build the potos.base ansible collection tarball and stage it in input/collections/
+    summary: |
+      Runs `ansible-galaxy collection build` against COLLECTION_PATH
+      (default ../ansible-collection-potos.base) and copies the resulting
+      tarball into {{.COLLECTIONS_OUT}}/, where the ISO builder picks it up.
+      Skips silently when COLLECTION_PATH does not contain a galaxy.yml.
+    cmds:
+      - |
+        if [ ! -f {{.COLLECTION_PATH}}/galaxy.yml ]; then
+          echo "build:collection: {{.COLLECTION_PATH}}/galaxy.yml not found, skipping"
+          exit 0
+        fi
+        mkdir -p {{.COLLECTIONS_OUT}}
+        rm -f {{.COLLECTIONS_OUT}}/potos-base-*.tar.gz
+        ansible-galaxy collection build {{.COLLECTION_PATH}} --output-path {{.COLLECTIONS_OUT}} --force
+
+  build:
+    desc: Build the custom Fedora ISO using the container builder
+    cmds:
+      - docker compose run --build --rm builder
+
+  build:all:
+    desc: Build the potos.base collection tarball (if available) and then the ISO
+    cmds:
+      - task: build:collection
+      - task: "build:"
+
+  test:unit:
+    desc: Run unit tests
+    cmds:
+      - uv run --group test pytest tests/ -v
+
+  test:bootstrap:
+    desc: Bootstrap a VM using the generated ISO
+    cmds:
+      - ./tests/scripts/bootstrap.sh
+
+  test:teardown:
+    desc: Destroy the test VM and clean up artifacts
+    cmds:
+      - ./tests/scripts/teardown.sh
+
+  build-and-bootstrap:
+    desc: Build the ISO and run the bootstrap test
+    cmds:
+      - task: build:collection
+      - task: build
+      - task: test:bootstrap
+
+  build-and-test:
+    desc: Build the ISO and run unit + e2e tests
+    cmds:
+      - task: test:unit
+      - task: build:collection
+      - task: build
+      - task: test:bootstrap
+      - task: test:teardown

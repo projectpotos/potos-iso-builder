@@ -1,13 +1,52 @@
-# Potos iso building
+# Potos Fedora ISO Builder
 
-## Structure
-This repo contains the iso builder for Potos. 
- * [`container`](container) contains the source for the docker image `ghcr.io/projectpotos/potos-iso-builder`
- * [`config`](config) contains an example config
- * [`output`](output) is the directory where using the default commands the final iso is stored into
+Build customized Fedora installer ISOs with kickstart templating.
 
+## Setup
 
-# Documentation
-To see the entire documentation go to [potos.dev](https://potos.dev)
- * [How to build an ISO](https://potos.dev/guide/iso-build/how-to-build.html)
- * [ISO build config](https://potos.dev/guide/iso-build/config.html)
+### Requirements
+* libvirt with a qemu user session
+  * `virt-manager` is installed
+  * You have a QEMU/KVM User-Session (virsh link: `qemu:///session`) configured.
+  * your user is member of the `kvm` group
+  * `virt-install --osinfo list` knows about `fedora43`. If not, you will have to edit `tests/scripts/bootstrap.sh` and set `OS_VARIANT` to the highest fedora version you found in this list. Tested with `fedora42` successfully.
+* docker and docker-compose are installed
+  * see these [install instructions](https://docs.docker.com/engine/install/) and select your OS there.
+  * your user is member of the `docker` group (really needed?)
+  * the `docker.service` is not required!
+* go-task is installed.
+  * also called `task` in some distros
+    * Ubuntu: `snap install task --classic`
+
+### Download ISO and Checksum
+```
+curl -Lo input/Fedora-Server-dvd-x86_64-43-1.6.iso https://download.fedoraproject.org/pub/fedora/linux/releases/43/Server/x86_64/iso/Fedora-Server-dvd-x86_64-43-1.6.iso
+curl -Lo input/Fedora-Server-43-1.6-x86_64-CHECKSUM https://dl.fedoraproject.org/pub/fedora/linux/releases/43/Server/x86_64/iso/Fedora-Server-43-1.6-x86_64-CHECKSUM
+```
+
+### Tasks
+
+```bash
+go-task build-and-bootstrap # build the iso and test it in a VM
+
+go-task test:teardown # remove the testing VM
+```
+
+Alternatively, you can do it more steps:
+
+```bash
+go-task build            # build the iso
+go-task test:bootstrap   # create a VM in the local libvirt user session with that iso
+go-task test:teardown    # remove the testing VM
+```
+
+### Notes
+* You should set a new disk encryption password (default: `kickstart`)
+* You should set a new `admin` user password (default: `password`)
+
+## Links
+* https://github.com/erik1066/fedora-setup-guide
+* https://oneuptime.com/blog/post/2026-03-04-custom-rhel-9-iso-lorax-kickstart/view
+* https://pykickstart.readthedocs.io/en/latest/kickstart-docs.html
+* https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html-single/customizing_anaconda/index#deploying-and-testing-an-anaconda-add-on
+* https://fedoraproject.org/wiki/InitialSetup

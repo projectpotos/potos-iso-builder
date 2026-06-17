@@ -1,0 +1,91 @@
+---
+client_name:
+  long: "Potos Linux Client"
+  short: "potos"
+
+fedora_version: 44
+
+extra_repos: []
+
+disk_encryption:
+  enabled: true
+  init_password: "kickstart"
+
+partitioning:
+  type: btrfs
+
+firewall:
+  enabled: true
+
+locale:
+  lang: "en_US.UTF-8"
+  # keyboard: "ch"
+  timezone: "Europe/Zurich"
+
+network:
+  bootproto: "dhcp"
+  device: "link"
+  activate: true
+
+specs:
+  url: "https://github.com/projectpotos/ansible-specs-fedora-test.git"
+  branch: "main"
+
+# Where to install the potos.base ansible collection from. Passed directly to
+# `ansible-galaxy collection install`. If left empty, the builder looks for a
+# collection tarball in input/collections/
+# Examples:
+#   collection_source: "potos.base"
+#   collection_source: "potos.base:1.0.0"
+#   collection_source: "git+https://github.com/projectpotos/ansible-collection-potos.base.git,main"
+collection_source: ""
+
+initial_hostname: "potos-bootstrap"
+
+initial_user:
+  username: "admin"
+  password_hash: "$6$0zKIdnbU7nWRvBQ6$UdL043nV7vWOnRUy5B3sej/pQDUtWwfiIAdXP1tvrg5TSUJXh6SALTy2HazbJEUCeEf/OWRCjncUDlI4r8vJd0" # password
+
+authselect:
+  features:
+    - with-faillock
+
+packages:
+  exclude:
+    - openssh-server
+    - gssproxy
+    - nfs-utils
+    - "sssd*"
+    - "abrt*"
+  groups:
+    - ^workstation-product-environment
+    - admin-tools
+    - core
+    - standard
+    - hardware-support
+    - firefox
+    - fonts
+    - libreoffice
+    - multimedia
+    - networkmanager-submodules
+    - printing
+    - gnome-desktop
+    - graphical-internet
+
+  install:
+    - vim
+
+post_install: "shutdown"
+
+firstboot:
+  role_vars:
+    potos_firstboot_credentials_source: prompt
+  extra_roles: []
+
+input:
+  iso_filename: "Fedora-Server-dvd-x86_64-44-1.7.iso"
+  checksum_filename: "Fedora-Server-44-1.7-x86_64-CHECKSUM"
+
+output:
+  version: "1.0"
+  iso_filename: "potos-installer.iso"

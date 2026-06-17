@@ -1,0 +1,24 @@
+---
+services:
+  builder:
+    build: .
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor=unconfined
+    device_cgroup_rules:
+      - "b 7:* rmw" # allow all loop block devices
+    devices:
+      - /dev/loop-control
+    volumes:
+      - /dev:/dev
+      - ./input:/input:ro
+      - ./output:/output:z
+      # - ./addons:/app/addons:ro
+    command:
+      - --config
+      - /input/config.yml
+      - --input-dir
+      - /input
+      - --output-dir
+      - /output

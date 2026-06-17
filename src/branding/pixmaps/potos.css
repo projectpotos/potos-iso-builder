@@ -1,0 +1,216 @@
+/* Potos Linux Client - Anaconda installer theme
+ * Overrides the default Anaconda GTK stylesheet.
+ * Brand color: #92287f (Potos purple, from logo)
+ * Sidebar/nav: #22272e (dark background from potos.dev)
+ * Accent color: #3eaf7c (from potos.dev website)
+ *
+ * GTK3 Adwaita uses background-image (gradients) for widget styling.
+ * We must use background-image: image(#color) to override them,
+ * since background-color alone is masked by background-image.
+ */
+
+/* theme colors/images */
+
+@define-color product_bg_color #22272e;
+
+/* Redefine Adwaita's selection/accent colors globally */
+@define-color theme_selected_bg_color #3eaf7c;
+@define-color theme_selected_fg_color white;
+@define-color accent_bg_color #3eaf7c;
+@define-color accent_color #3eaf7c;
+@define-color link_color #3eaf7c;
+@define-color question_bg_color #3eaf7c;
+@define-color question_fg_color white;
+
+/* logo and sidebar classes */
+
+.logo-sidebar {
+   background-image: url('/usr/share/anaconda/pixmaps/sidebar-bg.png');
+   background-color: @product_bg_color;
+   background-repeat: no-repeat;
+}
+
+/* Add a logo to the sidebar */
+
+.logo {
+   background-image: url('/usr/share/anaconda/pixmaps/sidebar-logo.png');
+   background-position: 50% 20px;
+   background-repeat: no-repeat;
+   background-color: transparent;
+}
+
+/* This is a placeholder to be filled by a product-specific logo. */
+
+.product-logo {
+   background-image: none;
+   background-color: transparent;
+}
+
+AnacondaSpokeWindow #nav-box {
+   background-color: @product_bg_color;
+   background-image: url('/usr/share/anaconda/pixmaps/topbar-bg.png');
+   background-repeat: no-repeat;
+   color: white;
+}
+
+/* ── Accent color overrides ────────────────────────────────────────── */
+
+/* suggested-action buttons (Done, Continue, Begin Installation) */
+
+button.suggested-action {
+   background-image: image(#3eaf7c);
+   border-color: #2d8f64;
+   color: white;
+   text-shadow: none;
+}
+
+button.suggested-action:hover {
+   background-image: image(#47c68d);
+   border-color: #3eaf7c;
+}
+
+button.suggested-action:active {
+   background-image: image(#2d8f64);
+   border-color: #267a56;
+}
+
+button.suggested-action:disabled {
+   background-image: image(#8ecdb3);
+   border-color: #a5d6c1;
+   color: rgba(255, 255, 255, 0.6);
+}
+
+/* Regular buttons disabled state */
+
+button:disabled {
+   opacity: 0.5;
+}
+
+/* Checkbuttons */
+
+checkbutton check:checked,
+checkbutton check:indeterminate {
+   background-image: image(#3eaf7c);
+   border-color: #2d8f64;
+   color: white;
+}
+
+checkbutton check:checked:hover,
+checkbutton check:indeterminate:hover {
+   background-image: image(#47c68d);
+   border-color: #3eaf7c;
+}
+
+checkbutton check:checked:disabled,
+checkbutton check:indeterminate:disabled {
+   background-image: image(#8ecdb3);
+   border-color: #a5d6c1;
+   color: rgba(255, 255, 255, 0.6);
+}
+
+/* Radiobuttons */
+
+radiobutton radio:checked {
+   background-image: image(#3eaf7c);
+   border-color: #2d8f64;
+   color: white;
+}
+
+radiobutton radio:checked:hover {
+   background-image: image(#47c68d);
+   border-color: #3eaf7c;
+}
+
+radiobutton radio:checked:disabled {
+   background-image: image(#8ecdb3);
+   border-color: #a5d6c1;
+   color: rgba(255, 255, 255, 0.6);
+}
+
+/* Selection highlight (text, list rows, etc.) */
+
+*:selected {
+   background-color: #3eaf7c;
+   color: white;
+}
+
+/* Focus indicators */
+
+*:focus {
+   outline-color: #3eaf7c;
+}
+
+entry:focus {
+   border-color: #3eaf7c;
+}
+
+/* Links */
+
+*:link {
+   color: #3eaf7c;
+}
+
+*:link:hover {
+   color: #47c68d;
+}
+
+*:link:visited {
+   color: #2d8f64;
+}
+
+/* Combobox / dropdown selection */
+
+combobox popup>scrolledwindow>list>row:selected,
+popover>list row:selected,
+list row:selected,
+treeview:selected {
+   background-color: #3eaf7c;
+   color: white;
+}
+
+combobox popup>scrolledwindow>list>row:hover {
+   background-color: rgba(62, 175, 124, 0.15);
+}
+
+/* Scale/slider fill */
+
+scale trough highlight {
+   background-image: image(#3eaf7c);
+}
+
+/* Switch toggle */
+
+switch:checked {
+   background-image: image(#3eaf7c);
+   border-color: #2d8f64;
+}
+
+switch:checked:disabled {
+   background-image: image(#8ecdb3);
+   border-color: #a5d6c1;
+}
+
+/* Progressbar fill */
+
+progressbar progress {
+   background-color: #3eaf7c;
+   background-image: image(#3eaf7c);
+   border-color: #2d8f64;
+}
+
+progressbar progress:backdrop {
+   border-color: #3eaf7c;
+}
+
+/* Also override entry/spinbutton progress underline */
+
+entry progress,
+spinbutton:not(.vertical) progress {
+   border-color: #3eaf7c;
+}
+
+/* Notebook tab active indicator */
+
+notebook tab:checked {
+   border-color: #3eaf7c;
+}

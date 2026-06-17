@@ -1,0 +1,23 @@
+[project]
+name = "potos-iso-builder"
+version = "1.0.0"
+description = "Build customised Fedora installer ISOs with kickstart templating"
+requires-python = ">=3.12"
+dependencies = [
+    "jinja2>=3.1",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+build-iso = "build:main"
+
+
+[dependency-groups]
+dev = [
+    "pykickstart>=3.50",
+    "simpleline>=1.9",
+    "dasbus>=1.7",
+]
+test = [
+    "pytest>=8.0",
+]

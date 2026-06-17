@@ -1,3 +1,13 @@
 *.iso
-*.swp
-*.iso.sha256sum
+*.iso.bak
+*.sha256
+.venv/
+__pycache__/
+.pytest_cache/
+
+/output/*
+!/output/.gitkeep
+
+/input/*
+!/input/.gitkeep
+!/input/config.yml

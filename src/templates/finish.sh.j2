@@ -1,0 +1,135 @@
+#!/bin/bash
+# {{ config.client_name.long }} kickstart %post bootstrap.
+#
+# This script runs inside the installer; it only prepares the system so that
+# the firstboot wizard can run on first graphical login.
+#
+# Layout produced:
+#   /etc/potos/config.yml                       -- single non-secret system config
+#   /opt/potos-firstboot/venv                   -- ansible-core virtualenv
+#   /usr/share/ansible/collections/...          -- bundled potos.base collection
+#   /usr/libexec/potos/firstboot-wrapper.sh     -- launches the firstboot playbook
+#   /etc/xdg/autostart/potos-firstboot.desktop  -- triggers wrapper on login
+#   /usr/libexec/potos/credentials.sh           -- user-defined credential script
+
+set -euo pipefail
+
+# Anaconda's chroot has no locale configured; ansible-core refuses to run
+# unless LANG/LC_ALL are valid UTF-8.
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
+
+LOG_DIR="/var/log/{{ config.client_name.short }}"
+SETUP_DIR="/root/potos-setup"
+
+install -d -m 0750 -o root -g root /etc/potos
+install -d -m 0750 -o root -g root /var/lib/potos
+install -d -m 0750 -o root -g root "${LOG_DIR}"
+install -d -m 0755 -o root -g root /usr/libexec/potos
+
+# --- System configuration -------------------------------------------------
+# With the specs config and client definition.
+cat >/etc/potos/config.yml <<'EOF'
+{{ config_yaml }}
+EOF
+chmod 0640 /etc/potos/config.yml
+
+# --- Version stamp --------------------------------------------------------
+cat >/etc/potos/version <<EOF
+{{ config.client_name.short }} {{ config.output.version }} ({{ build_date }})
+EOF
+
+# --- Prerequisites + venv + collection -----------------------------------
+dnf install -y git python3 python3-pip python3-virtualenv polkit
+
+python3 -m venv /opt/potos-firstboot/venv
+/opt/potos-firstboot/venv/bin/pip install --upgrade pip ansible-core
+
+# Install the potos.base ansible collection.
+mkdir -p /usr/share/ansible/collections
+{% if config.collection_source %}
+# Configured source: {{ config.collection_source }}
+/opt/potos-firstboot/venv/bin/ansible-galaxy collection install \
+  {{ config.collection_source | quote }} \
+  -p /usr/share/ansible/collections --force
+{% else %}
+# No collection_source configured - install bundled tarballs from the ISO
+# setup directory (built locally).
+if compgen -G "${SETUP_DIR}/collections/*.tar.gz" >/dev/null; then
+  for tgz in "${SETUP_DIR}"/collections/*.tar.gz; do
+    /opt/potos-firstboot/venv/bin/ansible-galaxy collection install \
+      "${tgz}" -p /usr/share/ansible/collections --force
+  done
+else
+  echo "ERROR: no collection_source configured and no tarballs under ${SETUP_DIR}/collections" >&2
+  exit 1
+fi
+{% endif %}
+
+# --- Credential script ------------------------------------------------------
+if [ -f "${SETUP_DIR}/credentials.sh" ]; then
+  install -m 0750 -o root -g root \
+    "${SETUP_DIR}/credentials.sh" /usr/libexec/potos/credentials.sh
+fi
+
+# --- Firstboot wrapper + autostart ---------------------------------------
+cat >/usr/libexec/potos/firstboot-wrapper.sh <<'WRAPPER'
+#!/bin/bash
+# Runs the potos firstboot playbook once on the first graphical login.
+set -euo pipefail
+MARKER=/var/lib/potos/firstboot.done
+[ -e "${MARKER}" ] && exit 0
+
+# Re-exec via pkexec so we can write to /etc and do other privileged stuff. The
+# autostart entry runs as the logged-in user; pkexec prompts for authentication.
+# Since pkexec strips the environment, we have to forward the user's DISPLAY/XAUTHORITY
+# as positional args.
+if [ "${EUID}" -ne 0 ]; then
+  exec pkexec --disable-internal-agent /usr/libexec/potos/firstboot-wrapper.sh \
+    "DISPLAY=${DISPLAY:-:0}" \
+    "XAUTHORITY=${XAUTHORITY:-}" \
+    "$@"
+fi
+
+# Recover the forwarded values
+export "${1?missing DISPLAY arg}"
+export "${2?missing XAUTHORITY arg}"
+shift 2
+
+export ANSIBLE_COLLECTIONS_PATH="${ANSIBLE_COLLECTIONS_PATH:-/usr/share/ansible/collections}"
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
+
+LOG=/var/log/{{ config.client_name.short }}/firstboot.log
+mkdir -p "$(dirname "${LOG}")"
+
+COLLECTION_ROOT=/usr/share/ansible/collections/ansible_collections/potos/base
+if [ ! -d "${COLLECTION_ROOT}" ]; then
+  echo "ERROR: potos.base collection not installed under ${COLLECTION_ROOT}" >&2
+  /opt/potos-firstboot/venv/bin/ansible-galaxy collection list 2>&1 | tee -a "${LOG}" >&2
+  exit 1
+fi
+
+/opt/potos-firstboot/venv/bin/ansible-playbook \
+  -i localhost, -c local \
+  potos.base.firstboot \
+  2>&1 | tee -a "${LOG}"
+WRAPPER
+
+chmod 0755 /usr/libexec/potos/firstboot-wrapper.sh
+
+cat >/etc/xdg/autostart/potos-firstboot.desktop <<EOF
+[Desktop Entry]
+Type=Application
+Name={{ config.client_name.long }} first-boot setup
+Exec=/usr/libexec/potos/firstboot-wrapper.sh
+Terminal=true
+X-GNOME-Autostart-enabled=true
+NoDisplay=false
+EOF
+chmod 0644 /etc/xdg/autostart/potos-firstboot.desktop
+
+# --- Cleanup staged payload ----------------------------------------------
+rm -rf "${SETUP_DIR}"
+
+echo "{{ config.client_name.long }} bootstrap complete."
