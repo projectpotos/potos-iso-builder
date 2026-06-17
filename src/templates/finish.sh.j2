@@ -72,6 +72,14 @@ if [ -f "${SETUP_DIR}/credentials.sh" ]; then
     "${SETUP_DIR}/credentials.sh" /usr/libexec/potos/credentials.sh
 fi
 
+# --- Firstboot branding logo -------------------------------------------------
+# Installed to a persistent path because SETUP_DIR is removed below; the
+# firstboot dialogs reference it via the role's potos_firstboot_logo default.
+if [ -f "${SETUP_DIR}/logo.png" ]; then
+  install -d -m 0755 -o root -g root /usr/share/potos
+  install -m 0644 -o root -g root "${SETUP_DIR}/logo.png" /usr/share/potos/logo.png
+fi
+
 # --- Firstboot wrapper + autostart ---------------------------------------
 cat >/usr/libexec/potos/firstboot-wrapper.sh <<'WRAPPER'
 #!/bin/bash

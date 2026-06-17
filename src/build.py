@@ -300,6 +300,13 @@ class ISOBuilder:
             dst.chmod(0o755)
             self.log.info("setup/: bundled credentials script from %s", script_src)
 
+        # Branding logo shown by the firstboot dialogs (installed persistently
+        # by finish.sh; the staging dir itself is removed after install).
+        logo_src = Path(self.args.input_dir) / "logo.png"
+        if logo_src.is_file():
+            shutil.copy2(logo_src, setup / "logo.png")
+            self.log.info("setup/: bundled firstboot logo from %s", logo_src)
+
         return staging
 
     def render_kickstart(self) -> str:
