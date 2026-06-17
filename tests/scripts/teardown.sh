@@ -19,8 +19,8 @@ fi
 # Undefine the domain and remove the disk image
 if virsh dominfo "${VM_NAME}" &>/dev/null 2>&1; then
     echo "==> Undefining VM..."
-    virsh undefine "${VM_NAME}" --remove-all-storage 2>/dev/null \
-        || virsh undefine "${VM_NAME}"
+    virsh undefine "${VM_NAME}" --remove-all-storage --nvram 2>/dev/null \
+        || virsh undefine "${VM_NAME}" --nvram
 fi
 
 
