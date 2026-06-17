@@ -23,7 +23,7 @@ virt-install \
     --name "${VM_NAME}" \
     --ram 4096 \
     --vcpus 2 \
-    --disk "path=${DISK_PATH},size=30,format=qcow2" \
+    --disk "path=${DISK_PATH},size=20,format=qcow2" \
     --os-variant "${OS_VARIANT}" \
     --cdrom "${ISO_PATH}" \
     --network user \
