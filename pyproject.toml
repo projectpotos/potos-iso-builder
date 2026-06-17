@@ -23,6 +23,7 @@ test = [
 ]
 lint = [
     "ruff>=0.14",
+    "yamllint>=1.37",
 ]
 
 [tool.ruff]

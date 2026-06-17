@@ -4,3 +4,19 @@ extends: default
 
 rules:
   line-length: disable
+  truthy:
+    # Allow GitHub Actions' `on:` key without quoting.
+    allowed-values: ["true", "false", "on"]
+  comments:
+    min-spaces-from-content: 1
+  comments-indentation: false
+  braces:
+    max-spaces-inside: 1
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true
+
+ignore: |
+  .venv/
+  output/
+  input/
