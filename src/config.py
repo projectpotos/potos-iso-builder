@@ -166,7 +166,7 @@ class InitialUser:
             username=data.get("username", "potos"),
             password_hash=data.get(
                 "password_hash",
-                "$6$anXOuiWGKciAIFeD$mlYKotVh1phov5oTsOVxj2/L7vGxAy4VojtxXSPa..9q7EdKwK99xoRbcY5UI4DN4kK7r0ODuRgbDvKIiEhMl0",  # potos
+                "$6$anXOuiWGKciAIFeD$mlYKotVh1phov5oTsOVxj2/L7vGxAy4VojtxXSPa..9q7EdKwK99xoRbcY5UI4DN4kK7r0ODuRgbDvKIiEhMl0",  # potos  # noqa: E501
             ),
         )
 

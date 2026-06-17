@@ -7,7 +7,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from config import Config
 
-
 EXAMPLE_CONFIG = {
     "client_name": {"short": "dailyplanetos", "long": "DailyPlanet Linux Client"},
     "disk_encryption": {"enabled": True, "init_password": "s3cr3t"},
@@ -29,9 +28,7 @@ EXAMPLE_CONFIG = {
                 "field": "specs_token",
             },
         },
-        "extra_roles": [
-            {"name": "mycorp.bootstrap.enroll", "src": "git+https://example.com/r.git"}
-        ],
+        "extra_roles": [{"name": "mycorp.bootstrap.enroll", "src": "git+https://example.com/r.git"}],
     },
     "input": {
         "iso_filename": "Fedora-Server-dvd-x86_64-43-1.6.iso",

@@ -82,9 +82,7 @@ class ISOBuilder:
 
             updates_img = Path(self.args.output_dir) / "updates.img"
 
-            find_result = subprocess.run(
-                ["find", "."], cwd=root, capture_output=True, check=True
-            )
+            find_result = subprocess.run(["find", "."], cwd=root, capture_output=True, check=True)
             cpio_result = subprocess.run(
                 ["cpio", "-c", "-o", "--quiet"],
                 cwd=root,
@@ -131,9 +129,7 @@ class ISOBuilder:
             self.log.info("Anaconda: using custom logo from input/logo.png")
 
         anaconda_template_dir = TEMPLATE_DIR / "anaconda"
-        rendered = render_template(
-            ".buildstamp.j2", branding_context, anaconda_template_dir
-        )
+        rendered = render_template(".buildstamp.j2", branding_context, anaconda_template_dir)
         (root / ".buildstamp").write_text(rendered)
         self.log.info("Anaconda: rendered .buildstamp")
 
@@ -143,9 +139,7 @@ class ISOBuilder:
         if conf_d_template_dir.is_dir():
             for f in conf_d_template_dir.iterdir():
                 if f.is_file() and f.suffix == ".j2":
-                    rendered = render_template(
-                        f.name, branding_context, conf_d_template_dir
-                    )
+                    rendered = render_template(f.name, branding_context, conf_d_template_dir)
                     out_name = f.stem  # strip .j2
                     (conf_d_dest / out_name).write_text(rendered)
                     self.log.info("Anaconda: rendered conf.d/%s", out_name)
@@ -176,9 +170,7 @@ class ISOBuilder:
                 text=True,
             )
             if result.returncode != 0:
-                self.log.error(
-                    "Failed to download Fedora GPG keyring:\n%s", result.stderr
-                )
+                self.log.error("Failed to download Fedora GPG keyring:\n%s", result.stderr)
                 sys.exit(1)
 
             self.log.info("Verifying checksum file signature and ISO integrity...")
@@ -296,8 +288,7 @@ class ISOBuilder:
                 added += 1
         if added == 0 and not self.cfg.collection_source:
             self.log.warning(
-                "No collection tarballs found in %s and no collection_source "
-                "configured; firstboot will fail",
+                "No collection tarballs found in %s and no collection_source configured; firstboot will fail",
                 collections_src,
             )
 
@@ -393,14 +384,10 @@ class ISOBuilder:
                 text=True,
             )
             if result.returncode != 0 or not grub_cfg.exists():
-                self.log.warning(
-                    "Could not extract grub.cfg from ISO; skipping boot menu customization"
-                )
+                self.log.warning("Could not extract grub.cfg from ISO; skipping boot menu customization")
                 return
 
-            replacements = self._compute_label_replacements(
-                grub_cfg.read_text(), os_name, version
-            )
+            replacements = self._compute_label_replacements(grub_cfg.read_text(), os_name, version)
             if not replacements:
                 self.log.warning("No boot menu entries found to customize")
                 return
@@ -424,18 +411,14 @@ class ISOBuilder:
             shutil.move(str(patched), str(iso_path))
             self.log.info("Boot menu now shows: %s", os_name)
 
-    def _compute_label_replacements(
-        self, content: str, os_name: str, version: str
-    ) -> list[tuple[str, str]]:
+    def _compute_label_replacements(self, content: str, os_name: str, version: str) -> list[tuple[str, str]]:
         """Return (from, to) pairs for Fedora boot menu label substitution.
 
         Auto-detects the Fedora variant (e.g. 'Fedora Server') from menuentry
         titles and returns replacements for both the versioned form
         ('Fedora Server 44') and the bare product name used in rescue entries.
         """
-        match = re.search(
-            r"menuentry\s+['\"].*?(Fedora\s+\w+)\s+" + re.escape(version), content
-        )
+        match = re.search(r"menuentry\s+['\"].*?(Fedora\s+\w+)\s+" + re.escape(version), content)
         if match:
             fedora_product = match.group(1)  # e.g. "Fedora Server"
             return [
@@ -472,11 +455,7 @@ class ISOBuilder:
 
         updates_img = None
         addons_root = Path("./addons")
-        addon_dirs = (
-            [d for d in sorted(addons_root.iterdir()) if d.is_dir()]
-            if addons_root.is_dir()
-            else []
-        )
+        addon_dirs = [d for d in sorted(addons_root.iterdir()) if d.is_dir()] if addons_root.is_dir() else []
         self.log.info("Found %d addon(s) in %s", len(addon_dirs), addons_root)
         self.log.info(
             "Building updates.img with custom anaconda config%s",
@@ -500,9 +479,7 @@ class ISOBuilder:
         self.write_checksum(iso_path)
 
 
-def render_template(
-    template_name: str, context: dict, template_dir: Path = TEMPLATE_DIR
-) -> str:
+def render_template(template_name: str, context: dict, template_dir: Path = TEMPLATE_DIR) -> str:
     """Render a Jinja2 template from the given directory."""
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(str(template_dir)),
@@ -515,16 +492,14 @@ def render_template(
 
 def load_config(path: str) -> Config:
     """Load the config from a YAML file"""
-    with open(path, "r") as f:
+    with open(path) as f:
         data = yaml.safe_load(f)
     return Config.from_dict(data)
 
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(
-        description="Build a customized Fedora ISO with a kickstart file."
-    )
+    parser = argparse.ArgumentParser(description="Build a customized Fedora ISO with a kickstart file.")
     parser.add_argument(
         "--config",
         type=str,
