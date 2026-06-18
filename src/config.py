@@ -34,15 +34,88 @@ class DiskEncryption:
 
 
 @dataclass
-class Partitioning:
-    """Partitioning configuration."""
+class PartitionSpec:
+    """A simple, fixed-size partition (e.g. /boot or /boot/efi)."""
 
-    type: str
+    fstype: str
+    size: int  # in MiB
+    enabled: bool
+
+    @classmethod
+    def from_dict(cls, data: dict, default_fstype: str, default_size: int):
+        return cls(
+            fstype=data.get("fstype", default_fstype),
+            size=data.get("size", default_size),
+            enabled=data.get("enabled", True),
+        )
+
+
+@dataclass
+class Subvolume:
+    """A btrfs subvolume (or, for the lvm layout, a logical volume)."""
+
+    name: str
+    mountpoint: str
+    fstype: str  # only used for the lvm layout; ignored for btrfs
+    size: int  # in MiB, only used for the lvm layout (0 == unset); ignored for btrfs
 
     @classmethod
     def from_dict(cls, data: dict):
         return cls(
+            name=data["name"],
+            mountpoint=data["mountpoint"],
+            fstype=data.get("fstype", "ext4"),
+            size=data.get("size", 0),
+        )
+
+
+@dataclass
+class RootPartition:
+    """The root (data) partition layout for custom partitioning."""
+
+    layout: str  # btrfs | lvm | plain
+    fstype: str  # for the 'plain' layout, the fstype of the single / partition
+    grow: bool
+    size: int  # in MiB, only meaningful when grow is False (0 == unset)
+    label: str  # btrfs volume label / lvm volume group name
+    subvolumes: list
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            layout=data.get("layout", "btrfs"),
+            fstype=data.get("fstype", "ext4"),
+            grow=data.get("grow", True),
+            size=data.get("size", 0),
+            label=data.get("label", "fedora"),
+            subvolumes=[Subvolume.from_dict(s) for s in data.get("subvolumes", [])],
+        )
+
+
+@dataclass
+class Partitioning:
+    """Partitioning configuration.
+
+    Two modes are supported:
+      * "auto"   - delegate to anaconda's ``autopart`` (uses ``type``).
+      * "custom" - lay out efi/boot/root partitions explicitly, with support
+                   for choosing the /boot fstype and btrfs subvolumes.
+    """
+
+    mode: str  # auto | custom
+    type: str  # autopart type (lvm | btrfs | plain), used in "auto" mode
+    efi: PartitionSpec
+    boot: PartitionSpec
+    root: RootPartition
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            mode=data.get("mode", "auto"),
             type=data.get("type", "lvm"),
+            efi=PartitionSpec.from_dict(data.get("efi", {}), "efi", 600),
+            boot=PartitionSpec.from_dict(data.get("boot", {}), "xfs", 1024),
+            root=RootPartition.from_dict(data.get("root", {})),
         )
 
 

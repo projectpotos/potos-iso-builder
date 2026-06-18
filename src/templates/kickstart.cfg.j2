@@ -19,10 +19,50 @@ repo --name={{ repo.name }}{% if repo.install | default(false) %} --install{% en
 clearpart --all --initlabel
 
 # Partitioning
+{% if config.partitioning.mode == 'custom' %}
+{% set p = config.partitioning %}
+{% if config.disk_encryption.enabled %}
+{% set enc = ' --encrypted --passphrase=' ~ config.disk_encryption.init_password %}
+{% else %}
+{% set enc = '' %}
+{% endif %}
+{% if p.efi.enabled %}
+# EFI system partition
+part /boot/efi --fstype={{ p.efi.fstype }} --size={{ p.efi.size }}
+{% endif %}
+{% if p.boot.enabled %}
+# /boot partition
+part /boot --fstype={{ p.boot.fstype }} --size={{ p.boot.size }}
+{% endif %}
+
+{% if p.root.layout == 'btrfs' %}
+# btrfs volume with subvolumes
+part btrfs.01{% if not p.root.grow %} --size={{ p.root.size }}{% else %} --grow{% endif %}{{ enc }}
+
+btrfs none --label={{ p.root.label }} btrfs.01
+{% for sv in p.root.subvolumes %}
+btrfs {{ sv.mountpoint }} --subvol --name={{ sv.name }} LABEL={{ p.root.label }}
+{% endfor %}
+{% elif p.root.layout == 'lvm' %}
+# LVM volume group with logical volumes
+part pv.01{% if not p.root.grow %} --size={{ p.root.size }}{% else %} --grow{% endif %}{{ enc }}
+
+volgroup {{ p.root.label }} pv.01
+{% for sv in p.root.subvolumes %}
+{% set logvol_size = ' --size=' ~ sv.size if sv.size else '' %}
+{% set logvol_grow = ' --grow' if (loop.last and p.root.grow) else '' %}
+logvol {{ sv.mountpoint }} --vgname={{ p.root.label }} --name={{ sv.name }} --fstype={{ sv.fstype }}{{ logvol_size }}{{ logvol_grow }}
+{% endfor %}
+{% else %}
+# plain single root partition
+part / --fstype={{ p.root.fstype }}{% if not p.root.grow %} --size={{ p.root.size }}{% else %} --grow{% endif %}{{ enc }}
+{% endif %}
+{% else %}
 {% if config.disk_encryption.enabled %}
 autopart --encrypted --passphrase={{ config.disk_encryption.init_password }} --type={{ config.partitioning.type }}
 {% else %}
 autopart --type={{ config.partitioning.type }}
+{% endif %}
 {% endif %}
 
 # Configure Firewall

@@ -12,7 +12,26 @@ disk_encryption:
   init_password: "kickstart"
 
 partitioning:
+  mode: custom
   type: btrfs
+  efi:
+    fstype: efi
+    size: 1024
+  #boot:
+  #  enabled: false
+  root:
+    layout: btrfs
+    label: fedora
+    grow: true
+    subvolumes:
+      - name: "@"
+        mountpoint: /
+      - name: "@home"
+        mountpoint: /home
+      - name: "@cache"
+        mountpoint: /var/cache
+      - name: "@log"
+        mountpoint: /var/log
 
 firewall:
   enabled: true
