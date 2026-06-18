@@ -30,6 +30,7 @@ virt-install \
     --graphics spice \
     --noautoconsole \
     --boot uefi \
+    --tpm backend.type=emulator,backend.version=2.0,model=tpm-crb \
     --wait -1
 
 echo "==> Installation finished. Detaching install ISO..."

@@ -44,6 +44,15 @@ go-task test:teardown    # remove the testing VM
 * You should set a new disk encryption password (default: `kickstart`)
 * You should set a new `admin` user password (default: `password`)
 
+## Testing
+
+### KVM with UEFI + Secureboot
+
+The `test:bootstrap` task will create a VM that uses UEFI and configures secureboot with libvirt.
+Please make sure you have the required `ovmf` package installed that adds UEFI support to KVM.
+
+In addition we will use `swtpm` to emulate a TPM for the testing VM.
+
 ## Links
 * https://github.com/erik1066/fedora-setup-guide
 * https://oneuptime.com/blog/post/2026-03-04-custom-rhel-9-iso-lorax-kickstart/view
