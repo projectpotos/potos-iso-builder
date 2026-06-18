@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from config import Config, Partitioning
+from config import Bootloader, Config, Partitioning
 
 EXAMPLE_CONFIG = {
     "client_name": {"short": "dailyplanetos", "long": "DailyPlanet Linux Client"},
@@ -201,3 +201,17 @@ def test_config_from_dict_exposes_partitioning():
 
     assert config.partitioning.mode == "custom"
     assert config.partitioning.root.layout == "btrfs"
+
+
+# --- Bootloader ------------------------------------------------------------
+
+
+def test_bootloader_defaults_to_grub():
+    assert Bootloader.from_dict({}).type == "grub"
+    assert Config.from_dict({}).bootloader.type == "grub"
+
+
+def test_bootloader_systemd_boot():
+    config = Config.from_dict({"bootloader": {"type": "systemd-boot"}})
+
+    assert config.bootloader.type == "systemd-boot"

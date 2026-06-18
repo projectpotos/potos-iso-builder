@@ -120,6 +120,24 @@ class Partitioning:
 
 
 @dataclass
+class Bootloader:
+    """Bootloader selection for the installed system.
+
+    Fedora installs grub2 by default. Setting ``type`` to ``systemd-boot``
+    makes anaconda install systemd-boot instead, via the
+    ``inst.bootloader=systemd-boot`` installer boot option.
+    """
+
+    type: str  # grub | systemd-boot
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            type=data.get("type", "grub"),
+        )
+
+
+@dataclass
 class Firewall:
     """Firewall configuration."""
 
@@ -303,6 +321,7 @@ class Config:
     extra_repos: list
     disk_encryption: DiskEncryption
     partitioning: Partitioning
+    bootloader: Bootloader
     firewall: Firewall
     locale: Locale
     network: Network
@@ -326,6 +345,7 @@ class Config:
             extra_repos=data.get("extra_repos", []),
             disk_encryption=DiskEncryption.from_dict(data.get("disk_encryption", {})),
             partitioning=Partitioning.from_dict(data.get("partitioning", {})),
+            bootloader=Bootloader.from_dict(data.get("bootloader", {})),
             firewall=Firewall.from_dict(data.get("firewall", {})),
             locale=Locale.from_dict(data.get("locale", {})),
             network=Network.from_dict(data.get("network", {})),

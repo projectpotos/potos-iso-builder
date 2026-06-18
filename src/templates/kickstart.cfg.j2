@@ -65,6 +65,11 @@ autopart --type={{ config.partitioning.type }}
 {% endif %}
 {% endif %}
 
+{% if config.bootloader.type == 'systemd-boot' %}
+# Bootloader
+bootloader --sdboot
+{% endif %}
+
 # Configure Firewall
 {% if config.firewall.enabled %}
 firewall --enabled

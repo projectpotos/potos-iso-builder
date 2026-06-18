@@ -17,8 +17,8 @@ partitioning:
   efi:
     fstype: efi
     size: 1024
-  #boot:
-  #  enabled: false
+  boot:
+    enabled: false
   root:
     layout: btrfs
     label: fedora
@@ -32,6 +32,9 @@ partitioning:
         mountpoint: /var/cache
       - name: "@log"
         mountpoint: /var/log
+
+bootloader:
+  type: systemd-boot
 
 firewall:
   enabled: true

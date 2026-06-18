@@ -13,7 +13,8 @@ Build customized Fedora installer ISOs with kickstart templating.
 * docker and docker-compose are installed
   * see these [install instructions](https://docs.docker.com/engine/install/) and select your OS there.
   * your user is member of the `docker` group (really needed?)
-  * the `docker.service` is not required!
+  * the `docker.service` is now required:
+    * In order to patch the EFI image we need permission to create loopback devices. That doesn't work with rootless podman, so we are forced to use docker instead.
 * go-task is installed.
   * also called `task` in some distros
     * Ubuntu: `snap install task --classic`

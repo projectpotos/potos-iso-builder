@@ -2,23 +2,12 @@
 version: "3"
 
 vars:
-  USE_PODMAN: "true"
-  _PODMAN_SOCK: "unix:///run/user/{{.UID}}/podman/podman.sock"
   UID:
     sh: id -u
   # Path to the potos.base ansible collection source tree. Override with
   # `task build:collection COLLECTION_PATH=/some/other/path` if needed.
   COLLECTION_PATH: '{{.COLLECTION_PATH | default "../ansible-collection-potos.base"}}'
   COLLECTIONS_OUT: "input/collections"
-
-env:
-  DOCKER_HOST:
-    sh: |
-      if [ "{{.USE_PODMAN}}" = "true" ] && [ -z "$DOCKER_HOST" ]; then
-        echo "unix:///run/user/{{.UID}}/podman/podman.sock"
-      else
-        echo "${DOCKER_HOST:-}"
-      fi
 
 tasks:
   build:collection:
