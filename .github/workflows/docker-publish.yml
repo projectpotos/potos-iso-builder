@@ -68,6 +68,7 @@ jobs:
             org.opencontainers.image.title=potos-iso-builder
             org.opencontainers.image.description=Build customised Fedora installer ISOs with kickstart
             org.opencontainers.image.licenses=GPL-3.0-or-later
+            maintainer=Project Potos <potos@adfinis.com>
 
       - name: Build and push image
         id: build
