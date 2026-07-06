@@ -22,7 +22,7 @@ test = [
     "pytest>=8.0",
 ]
 lint = [
-    "ruff>=0.14",
+    "ruff>=0.15.20",
     "yamllint>=1.37",
 ]
 
