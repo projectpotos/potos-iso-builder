@@ -19,7 +19,7 @@ dev = [
     "dasbus>=1.7",
 ]
 test = [
-    "pytest>=8.0",
+    "pytest>=9.1.1",
 ]
 lint = [
     "ruff>=0.14",
