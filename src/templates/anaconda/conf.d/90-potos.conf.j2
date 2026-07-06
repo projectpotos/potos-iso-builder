@@ -1,0 +1,12 @@
+# Anaconda configuration file for {{ config.client_name.long }}
+
+[User Interface]
+custom_stylesheet = /usr/share/anaconda/pixmaps/potos.css
+
+hidden_spokes =
+{% for spoke in config.anaconda.hidden_spokes %}
+    {{ spoke }}
+{% endfor %}
+
+[Security]
+selinux = 1

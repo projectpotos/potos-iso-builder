@@ -1,0 +1,27 @@
+---
+services:
+  builder:
+    build: .
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor=unconfined
+    device_cgroup_rules:
+      - "b 7:* rmw" # allow all loop block devices
+    devices:
+      - /dev/loop-control
+    volumes:
+      - /dev:/dev
+      - ${POTOS_INPUT:-./input}:/input:ro
+      - ${POTOS_OUTPUT:-./output}:/output:z
+      # - ./addons:/app/addons:ro
+    environment:
+      - SOURCE_DATE_EPOCH
+      - POTOS_BUILD_REF
+    command:
+      - --config
+      - /input/config.yml
+      - --input-dir
+      - /input
+      - --output-dir
+      - /output

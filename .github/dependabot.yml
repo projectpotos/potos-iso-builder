@@ -1,0 +1,47 @@
+---
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: daily
+      time: "12:00"
+      timezone: "Europe/Zurich"
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: uv
+    directory: "/"
+    schedule:
+      interval: daily
+      time: "12:00"
+      timezone: "Europe/Zurich"
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: pip
+    directory: "/src/firstboot"
+    schedule:
+      interval: daily
+      time: "12:00"
+      timezone: "Europe/Zurich"
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: daily
+      time: "12:00"
+      timezone: "Europe/Zurich"
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 7

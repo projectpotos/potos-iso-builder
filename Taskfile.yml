@@ -1,0 +1,100 @@
+---
+version: "3"
+
+vars:
+  UID:
+    sh: id -u
+  # Path to the projectpotos.base ansible collection source tree. Override with
+  # `task build:collection COLLECTION_PATH=/some/other/path` if needed.
+  COLLECTION_PATH: '{{.COLLECTION_PATH | default "../ansible-collection-potos.base"}}'
+  SOURCE_DATE_EPOCH:
+    sh: git log -1 --format=%ct 2>/dev/null || true
+  POTOS_BUILD_REF:
+    sh: git describe --tags --always --dirty 2>/dev/null || true
+
+tasks:
+  build:collection:
+    desc: Build the projectpotos.base collection tarball and stage it under <INPUT_DIR>/collections/
+    summary: |
+      Runs `ansible-galaxy collection build` against COLLECTION_PATH
+      (default ../ansible-collection-potos.base) and copies the resulting
+      tarball into <INPUT_DIR>/collections/ (default input/collections/), where
+      the ISO builder picks it up. Override the location with
+      `task build:collection INPUT_DIR=tests/input`.
+      Skips silently when COLLECTION_PATH does not contain a galaxy.yml.
+    cmds:
+      - |
+        OUT="{{.INPUT_DIR | default "input"}}/collections"
+        if [ ! -f {{.COLLECTION_PATH}}/galaxy.yml ]; then
+          echo "build:collection: {{.COLLECTION_PATH}}/galaxy.yml not found, skipping"
+          exit 0
+        fi
+        mkdir -p "${OUT}"
+        rm -f "${OUT}"/projectpotos-base-*.tar.gz
+        ansible-galaxy collection build {{.COLLECTION_PATH}} --output-path "${OUT}" --force
+
+  firstboot:lock:
+    desc: Regenerate the hashed firstboot venv lock from src/firstboot/requirements.in
+    cmds:
+      - >-
+        uv pip compile --generate-hashes --universal
+        --custom-compile-command "task firstboot:lock"
+        src/firstboot/requirements.in -o src/firstboot/requirements.txt
+
+  build:
+    desc: Build the custom Fedora ISO using the container builder (./input -> ./output)
+    summary: |
+      Builds from <INPUT_DIR> into <OUTPUT_DIR> (defaults input/ and output/).
+      Override with `task build INPUT_DIR=tests/input OUTPUT_DIR=tests/output`.
+    cmds:
+      - >-
+        SOURCE_DATE_EPOCH={{.SOURCE_DATE_EPOCH}}
+        POTOS_BUILD_REF={{.POTOS_BUILD_REF}}
+        POTOS_INPUT=./{{.INPUT_DIR | default "input"}}
+        POTOS_OUTPUT=./{{.OUTPUT_DIR | default "output"}}
+        docker compose run --build --rm builder
+
+  build:test:
+    desc: Build the ISO from the committed test fixture (tests/input -> tests/output)
+    cmds:
+      - task: build:collection
+        vars: { INPUT_DIR: tests/input }
+      - task: build
+        vars: { INPUT_DIR: tests/input, OUTPUT_DIR: tests/output }
+
+  test:unit:
+    desc: Run unit tests
+    cmds:
+      - uv run --group test pytest tests/ -v
+
+  test:bootstrap:
+    desc: Bootstrap a VM using the generated test ISO
+    cmds:
+      - ./tests/scripts/bootstrap.sh
+
+  test:teardown:
+    desc: Destroy the test VM and clean up artifacts
+    cmds:
+      - ./tests/scripts/teardown.sh
+
+  test:enroll-mok:
+    desc: Enroll the test VM's Secure Boot MOK non-interactively
+    summary: |
+      Workaround for when the interactive MokManager prompt on first boot times
+      out and throws a shim Security Violation (0x1A).
+    cmds:
+      - ./tests/scripts/enroll-mok.sh {{.CLI_ARGS}}
+
+  build-and-bootstrap:
+    desc: Build the test ISO and run the bootstrap test
+    cmds:
+      - task: build:test
+      - task: test:bootstrap
+
+  build-and-test:
+    desc: Build the test ISO and run unit + e2e tests
+    cmds:
+      - task: test:unit
+      - task: build:test
+      - task: test:bootstrap
+      - task: test:teardown

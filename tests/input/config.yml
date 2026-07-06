@@ -1,0 +1,203 @@
+---
+client_name:
+  long: "Potos Linux Client"
+  short: "potos"
+
+fedora_version: 44
+
+extra_repos: []
+
+disk_encryption:
+  enabled: true
+  init_password: "kickstart"
+
+partitioning:
+  mode: custom
+  type: btrfs
+  efi:
+    fstype: efi
+    size: 1024
+  boot:
+    enabled: false
+  root:
+    layout: btrfs
+    label: fedora
+    grow: true
+    subvolumes:
+      - name: "@"
+        mountpoint: /
+      - name: "@home"
+        mountpoint: /home
+      - name: "@cache"
+        mountpoint: /var/cache
+      - name: "@log"
+        mountpoint: /var/log
+
+bootloader:
+  type: systemd-boot
+
+uki:
+  enabled: true
+  mok_password: "potos"
+  cmdline_extra: ""
+
+firewall:
+  enabled: true
+
+locale:
+  lang: "en_US.UTF-8"
+  keyboard: "ch"
+  timezone: "Europe/Zurich"
+
+network:
+  bootproto: "dhcp"
+  device: "link"
+  activate: true
+
+specs:
+  url: "https://github.com/projectpotos/ansible-specs-fedora-test.git"
+  branch: "main"
+
+# Where to install the projectpotos.base ansible collection from. Passed directly to
+# `ansible-galaxy collection install`. If left empty, the builder looks for a
+# collection tarball in input/collections/
+# Examples:
+#   collection_source: "projectpotos.base"
+#   collection_source: "projectpotos.base:1.0.0"
+#   collection_source: "git+https://github.com/projectpotos/ansible-collection-potos.base.git,main"
+collection_source: ""
+
+debug:
+  no_log: true
+  verbosity: 0
+
+initial_hostname: "potos-bootstrap"
+
+initial_user:
+  username: "admin"
+  password_hash: "$6$0zKIdnbU7nWRvBQ6$UdL043nV7vWOnRUy5B3sej/pQDUtWwfiIAdXP1tvrg5TSUJXh6SALTy2HazbJEUCeEf/OWRCjncUDlI4r8vJd0" # password
+
+authselect:
+  features:
+    - with-faillock
+
+packages:
+  exclude:
+    - openssh-server
+    - gssproxy
+    - nfs-utils
+    - "sssd*"
+    - "abrt*"
+  groups:
+    - ^workstation-product-environment
+    - admin-tools
+    - core
+    - standard
+    - hardware-support
+    - firefox
+    - fonts
+    - libreoffice
+    - multimedia
+    - networkmanager-submodules
+    - printing
+    - gnome-desktop
+    - graphical-internet
+
+  install:
+    - vim
+
+post_install: "shutdown"
+
+credentials:
+  specs_token:
+    backend: systemd-creds
+    name: "testcred"
+    path: "/etc/potos/test.cred"
+
+firstboot:
+  firstboot:
+    steps:
+      - id: set_hostname
+        uses: hostname/change
+        input:
+          ask: true
+
+      - id: rotate_password
+        uses: user/rotate_password
+        input:
+          ask: true
+          username: admin
+
+      # - id: bao_login
+      #   uses: openbao/login
+      #   input:
+      #     url: https://bao.adfinis.com
+      #     mount: oidc
+      #     method: oidc
+      #     callback_host: localhost
+      #     listen_address: 127.0.0.1
+      #     role: device
+      #     callback_mode: device
+
+      # - id: luks_random_rotate
+      #   uses: luks/random_rotate
+      #   input:
+      #     current_passphrase: "kickstart"
+      #     length: 32
+      - id: luks_user_rotate
+        uses: luks/user_rotate
+        input:
+          current_passphrase: "kickstart"
+          ask: true
+          password_policy:
+            min_length: 8
+            min_uppercase: 1
+            min_lowercase: 1
+            min_digits: 1
+            min_special: 1
+            special_chars: "!@#$%^&*()-_=+[]{};:,.<>?/"
+
+      - id: luks_tpm_unlock
+        uses: luks/tpm_unlock
+        input:
+          wipe_slots: tpm2
+          tpm2_device: auto
+          tpm2_pcrs:
+            - "7"
+            - "15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
+          tpm2_public_key_pcrs: ["11"]
+          tpm2_public_key: "/etc/secureboot/pcr.pub.pem"
+          passphrase: "{{ steps.luks_user_rotate.passphrase }}"
+
+      # - id: bao_write_luks
+      #   uses: openbao/write
+      #   input:
+      #     url: https://bao.adfinis.com
+      #     token: "{{ steps.bao_login.token }}"
+      #     path: adfinis-kv/services/potos/luks/ag08-u02
+      #     data: "{{ {
+      #       'passphrase': steps.luks_random_rotate.passphrase,
+      #       'machine_id': ansible_facts.machine_id
+      #       } }}"
+      - id: systemd_creds_store
+        uses: systemd_creds/store
+        input:
+          secret: "lulz"
+          name: "testcred"
+          path: "/etc/potos/test.cred"
+          mode: "0600"
+          owner: "root"
+          group: "root"
+          with_key: "host+tpm2"
+          tpm2_pcrs:
+            - "7"
+            - "15"
+          tpm2_public_key_pcrs: ["11"]
+          tpm2_public_key: "/etc/secureboot/pcr.pub.pem"
+
+input:
+  iso: "fedora-server-44-1.7"
+
+output:
+  version: "1.0"
+  iso_filename: "potos-installer.iso"

@@ -1,0 +1,242 @@
+#!/bin/bash
+# {{ config.client_name.long }} Secure Boot / signed-UKI setup.
+#
+# Runs as a kickstart %post (inside anaconda's chroot on the installed system).
+# Converts the shimless `systemd-boot` install produced by `bootloader --sdboot`
+# into a measured, signed boot chain:
+#
+#   shim (Microsoft-signed) -> systemd-boot (host-signed, as grubx64.efi) -> signed UKI
+#
+# Secure Boot stays on the factory keys; the host's own key is generated locally
+# and queued for enrollment as a MOK. The firmware PK/KEK/db/dbx are never
+# touched, so fwupd and Option ROMs keep working.
+#
+
+set -euo pipefail
+
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
+
+log() { echo "[potos-uki] $*"; }
+
+SB_DIR=/etc/secureboot
+MOK_KEY="${SB_DIR}/mok.key"
+MOK_CRT="${SB_DIR}/mok.crt"
+MOK_DER="${SB_DIR}/mok.der"
+SDBOOT_EFI=/usr/lib/systemd/boot/efi/systemd-bootx64.efi
+SHIM_DIR=/boot/efi/EFI/fedora
+GRUBX64="${SHIM_DIR}/grubx64.efi"
+MOK_LABEL="{{ config.client_name.long }}"
+MOK_PASS={{ config.uki.mok_password | quote }}
+
+# `--setopt=install_weak_deps=False` is important so we dont install grub2-efi-x64
+log "Installing Secure Boot tooling"
+dnf install -y {% if not config.payload.include_updates %}--disablerepo='updates*' {% endif %}--setopt=install_weak_deps=False \
+  shim-x64 systemd-boot-unsigned systemd-ukify sbsigntools \
+  dracut tpm2-tools mokutil openssl
+
+# kernel-install, uki and dracut config
+log "Writing kernel-install / ukify / dracut configuration"
+cat >/etc/kernel/install.conf <<'EOF'
+layout=uki
+initrd_generator=dracut
+uki_generator=ukify
+EOF
+
+# Boot splash embedded into every signed UKI.
+SPLASH=/usr/share/systemd/bootctl/splash-{{ config.client_name.short }}.bmp
+if [ -f "${SPLASH}" ]; then
+  splash_line="Splash=${SPLASH}"
+else
+  log "WARN: boot splash ${SPLASH} not found; UKI will use the systemd default"
+  splash_line=""
+fi
+
+cat >/etc/kernel/uki.conf <<EOF
+[UKI]
+SecureBootPrivateKey=${MOK_KEY}
+SecureBootCertificate=${MOK_CRT}
+PCRBanks=sha256
+${splash_line}
+
+[PCRSignature:initrd]
+Phases=enter-initrd
+PCRPrivateKey=${SB_DIR}/pcr.key.pem
+PCRPublicKey=${SB_DIR}/pcr.pub.pem
+EOF
+
+cat >/etc/dracut.conf.d/measured-boot.conf <<'EOF'
+add_dracutmodules+=" systemd-pcrphase tpm2-tss systemd-cryptsetup "
+EOF
+
+# `ukify genkey` reads uki.conf and emits the signing key/cert mok
+# plus the PCR keypair.
+log "Generating per-host Secure Boot keys in ${SB_DIR}"
+mkdir -p "${SB_DIR}"
+chmod 0700 "${SB_DIR}"
+ukify genkey --config=/etc/kernel/uki.conf
+chmod 0600 "${MOK_KEY}" "${SB_DIR}/pcr.key.pem"
+log "Adjust SUBJ and SKI from MoK"
+openssl req -new -x509 -key "${MOK_KEY}" -sha256 -days 3650 \
+  -subj "/CN=${MOK_LABEL}/" \
+  -addext "basicConstraints=critical,CA:FALSE" \
+  -addext "subjectKeyIdentifier=hash" \
+  -out "${MOK_CRT}"
+# DER form of the cert for MokManager / mokutil.
+openssl x509 -in "${MOK_CRT}" -outform DER -out "${MOK_DER}"
+
+# We reuse the cmdline anaconda already computed for this host.
+# Lookup the existing BLS loader entry and strip
+# the installer-only flags and harden the initrd.
+log "Building embedded kernel cmdline from installed root"
+
+src_options=""
+for entry in /boot/efi/loader/entries/*.conf; do
+  [ -e "${entry}" ] || continue
+  case "${entry}" in *rescue*) continue ;; esac
+  line=$(grep -m1 '^options ' "${entry}" 2>/dev/null) || true
+  if [ -n "${line}" ]; then
+    src_options=${line#options }
+    log "Seeded cmdline from BLS entry ${entry}"
+    break
+  fi
+done
+
+if [ -z "${src_options}" ]; then
+  log "No BLS entry found; reconstructing cmdline from the mounted root"
+  root_uuid=$(findmnt -no UUID / 2>/dev/null) || true
+  root_src=$(findmnt -no SOURCE / 2>/dev/null) || true
+  root_opts=$(findmnt -no OPTIONS / 2>/dev/null) || true
+  if [ -z "${root_uuid}" ]; then
+    log "ERROR: could not determine root filesystem UUID"
+    exit 1
+  fi
+  luks_uuid=$(lsblk -nso UUID,FSTYPE "${root_src}" 2>/dev/null \
+    | awk '$2 == "crypto_LUKS" { print $1; exit }') || true
+  if [ -z "${luks_uuid}" ]; then
+    case "$(basename "${root_src}")" in
+      luks-*) luks_uuid=$(basename "${root_src}"); luks_uuid=${luks_uuid#luks-} ;;
+    esac
+  fi
+  # set subvol if we use btrfs
+  subvol=$(printf '%s' "${root_opts}" | tr ',' '\n' | sed -n 's/^subvol=//p' | head -n1) || true
+  src_options="root=UUID=${root_uuid} ro"
+  [ -n "${luks_uuid}" ] && src_options="rd.luks.uuid=luks-${luks_uuid} ${src_options}"
+  [ -n "${subvol}" ] && src_options="${src_options} rootflags=subvol=${subvol}"
+fi
+
+cmdline=""
+for tok in ${src_options}; do
+  case "${tok}" in
+    rd.live.*|inst.*|systemd.machine_id=*) ;;
+    rd.shell=*|rd.emergency=*) ;;
+    quiet|rhgb) ;;
+    *) cmdline="${cmdline:+${cmdline} }${tok}" ;;
+  esac
+done
+cmdline="${cmdline} quiet rd.shell=0 rd.emergency=reboot"
+{% if config.uki.cmdline_extra %}
+cmdline="${cmdline} {{ config.uki.cmdline_extra }}"
+{% endif %}
+
+echo "${cmdline}" >/etc/kernel/cmdline
+log "Embedded cmdline: ${cmdline}"
+
+# The rescue entry would bypass the UKI's
+# hardened cmdline; not something we want on a managed client.
+log "Disabling the dracut rescue image"
+echo 'dracut_rescue_image=no' >/etc/dracut.conf.d/90-no-rescue.conf
+mkdir -p /etc/kernel/install.d
+ln -sf /dev/null /etc/kernel/install.d/51-dracut-rescue.install
+rm -f /boot/efi/loader/entries/*rescue*.conf 2>/dev/null || true
+
+# Build and sign the UKI(s) for all installed kernels.
+log "Building and signing UKI(s) for all installed kernels"
+kernel-install add-all --verbose
+
+# Verify signatures.
+shopt -s nullglob
+for uki in /boot/efi/EFI/Linux/*.efi; do
+  if sbverify --cert "${MOK_CRT}" "${uki}" >/dev/null 2>&1; then
+    log "Signed UKI verified: ${uki}"
+  else
+    log "ERROR: UKI failed signature verification: ${uki}"
+    exit 1
+  fi
+done
+shopt -u nullglob
+
+# shim-x64 ships shimx64.efi + mmx64.efi (MokManager) under ${SHIM_DIR}.
+log "Signing systemd-boot and placing it as ${GRUBX64}"
+mkdir -p "${SHIM_DIR}"
+sbsign --key "${MOK_KEY}" --cert "${MOK_CRT}" \
+  --output "${GRUBX64}" "${SDBOOT_EFI}"
+
+# Resolve the ESP disk + partition number for the boot entry.
+esp_src=$(findmnt -no SOURCE /boot/efi 2>/dev/null) || true
+esp_disk="/dev/$(lsblk -nso PKNAME "${esp_src}" 2>/dev/null | head -n1)" || true
+esp_part=""
+if [ -n "${esp_src}" ] && [ -r "/sys/class/block/$(basename "${esp_src}")/partition" ]; then
+  esp_part=$(cat "/sys/class/block/$(basename "${esp_src}")/partition") || true
+fi
+log "ESP is ${esp_src:-unknown} (disk ${esp_disk}, partition ${esp_part:-unknown})"
+
+# Drop the shimless sd-boot entry created by `bootloader --sdboot` so the
+# firmware boots shim instead.
+if command -v efibootmgr >/dev/null 2>&1; then
+  while read -r bootnum; do
+    [ -n "${bootnum}" ] || continue
+    log "Removing existing direct systemd-boot boot entry Boot${bootnum}"
+    efibootmgr --delete-bootnum --bootnum "${bootnum}" >/dev/null 2>&1 || true
+  done < <(efibootmgr | sed -n 's#^Boot\([0-9A-Fa-f]\{4\}\)\*\? .*[\\/]systemd-bootx64\.efi.*#\1#p')
+
+  if [ -n "${esp_disk#/dev/}" ] && [ -n "${esp_part}" ]; then
+    efibootmgr --create --disk "${esp_disk}" --part "${esp_part}" \
+      --label "${MOK_LABEL}" --loader '\EFI\fedora\shimx64.efi' --unicode \
+      || log "WARN: efibootmgr could not create the shim boot entry (no NVRAM?)"
+  else
+    log "WARN: could not resolve ESP disk/partition; relying on EFI/BOOT fallback"
+  fi
+fi
+
+# Removable-media fallback path: shim + signed systemd-boot under EFI/BOOT so a
+# firmware that ignores NVRAM entries (or a reset) still finds the signed chain.
+log "Installing removable-media fallback under /boot/efi/EFI/BOOT"
+mkdir -p /boot/efi/EFI/BOOT
+if [ -f "${SHIM_DIR}/shimx64.efi" ]; then
+  cp -f "${SHIM_DIR}/shimx64.efi" /boot/efi/EFI/BOOT/BOOTX64.EFI
+fi
+if [ -f "${SHIM_DIR}/mmx64.efi" ]; then
+  cp -f "${SHIM_DIR}/mmx64.efi" /boot/efi/EFI/BOOT/mmx64.efi
+fi
+cp -f "${GRUBX64}" /boot/efi/EFI/BOOT/grubx64.efi
+
+# UKIs re-sign automatically via kernel-install on every kernel upgrade. The
+# systemd-boot package is unsigned, so refresh the shim-loaded grubx64.efi
+# whenever systemd-boot-update runs.
+log "Installing systemd-boot-update re-signing drop-in"
+mkdir -p /etc/systemd/system/systemd-boot-update.service.d
+cat >/etc/systemd/system/systemd-boot-update.service.d/10-sbsign.conf <<EOF
+[Service]
+ExecStartPre=/usr/bin/sbsign --key ${MOK_KEY} --cert ${MOK_CRT} \\
+  --output ${SDBOOT_EFI}.signed ${SDBOOT_EFI}
+ExecStartPost=/usr/bin/sbsign --key ${MOK_KEY} --cert ${MOK_CRT} \\
+  --output ${GRUBX64} ${SDBOOT_EFI}
+EOF
+systemctl enable systemd-boot-update.service
+
+# Stores the request in MokNew with the password hash.
+# The operator has to confirm the password at MokManager on the next reboot.
+log "Queueing MOK enrollment for ${MOK_DER}"
+printf '%s\n%s\n' "${MOK_PASS}" "${MOK_PASS}" | mokutil --import "${MOK_DER}"
+
+# mokutil can fail to queue the request while still exiting 0 (e.g. the SKID
+# issue handled above). A missing MokNew means an unbootable Secure Boot system,
+# so verify the request actually landed and fail the build loudly if it did not.
+if ! mokutil --list-new 2>/dev/null | grep -qiE "fingerprint|\[key"; then
+  log "ERROR: MOK enrollment was not queued (MokNew is empty after import)."
+  log "       The signed boot chain would fail Secure Boot with a 0x1A violation."
+  exit 1
+fi
+log "MOK enrollment queued in MokNew."
+log "Secure Boot setup complete."
