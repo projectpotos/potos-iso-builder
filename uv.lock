@@ -254,7 +254,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "dasbus", specifier = ">=1.7" },
-    { name = "pykickstart", specifier = ">=3.50" },
+    { name = "pykickstart", specifier = ">=3.75" },
     { name = "simpleline", specifier = ">=1.9" },
 ]
 lint = [
@@ -274,12 +274,12 @@ wheels = [
 
 [[package]]
 name = "pykickstart"
-version = "3.69"
+version = "3.75"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0e/8a/95f58608c6d537f8840c42803cb6be6b1b9a0e3a8c3e4d06770d279e6f86/pykickstart-3.69.tar.gz", hash = "sha256:49bbc8a51b43a071af9e89944248929a6f3c038731e1a868701dc939aab4dc57", size = 834663, upload-time = "2026-02-18T17:21:08.992Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/18/23/4dc7a90e3ab3ea73fab6f3c5d6c087714242b7bef1edf45ed2887bc00e38/pykickstart-3.75.tar.gz", hash = "sha256:526ff8f3aa86b7a6c8dfea593ac29052f711a679919319e0dbdcbc635398ea5a", size = 868264, upload-time = "2026-06-22T18:54:58.57Z" }
 
 [[package]]
 name = "pytest"
