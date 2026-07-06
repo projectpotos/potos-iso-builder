@@ -10,17 +10,19 @@ import hashlib
 import logging
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import jinja2
 import yaml
 
 from config import Config
+from isos import ISOSource, resolve_iso
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,6 +46,45 @@ class ISOBuilder:
         self.cfg = cfg
         self.args = args
         self.log = logging.getLogger("ISOBuilder")
+        self.iso_id = getattr(args, "iso", "") or cfg.input.iso
+        self.source_date_epoch = self._resolve_source_date_epoch()
+        self.build_date = (
+            datetime.fromtimestamp(self.source_date_epoch, tz=UTC).strftime("%Y-%m-%d")
+            if self.source_date_epoch is not None
+            else ""
+        )
+        self.build_ref = os.environ.get("POTOS_BUILD_REF", "")
+
+    def _resolve_source_date_epoch(self) -> int | None:
+        """Resolve the fixed build timestamp from the flag or SOURCE_DATE_EPOCH.
+
+        Returns None when neither is set, in which case build dates are omitted
+        so the output stays identical across runs.
+        """
+        val = getattr(self.args, "source_date_epoch", None)
+        if val is None:
+            env = os.environ.get("SOURCE_DATE_EPOCH")
+            if env:
+                try:
+                    val = int(env)
+                except ValueError:
+                    self.log.warning("Ignoring non-integer SOURCE_DATE_EPOCH=%r", env)
+        if val is None:
+            self.log.info("No build timestamp set; omitting dates so the build stays reproducible")
+        return val
+
+    def _normalize_mtimes(self, root: Path) -> None:
+        """Pin every staged file's mtime to the build timestamp.
+
+        cpio records each entry's mtime; without this it captures the staging
+        time and the archive differs on every run. No-op when no timestamp is set.
+        """
+        if self.source_date_epoch is None:
+            return
+        ts = self.source_date_epoch
+        os.utime(root, (ts, ts))
+        for p in root.rglob("*"):
+            os.utime(p, (ts, ts), follow_symlinks=False)
 
     def build_updates_img(self, addon_dirs: list[Path]) -> Path:
         """Build an updates.img containing anaconda addons and customizations for the installer.
@@ -82,16 +123,19 @@ class ISOBuilder:
 
             updates_img = Path(self.args.output_dir) / "updates.img"
 
+            self._normalize_mtimes(root)
+
             find_result = subprocess.run(["find", "."], cwd=root, capture_output=True, check=True)
+            file_list = b"\n".join(sorted(find_result.stdout.splitlines())) + b"\n"
             cpio_result = subprocess.run(
-                ["cpio", "-c", "-o", "--quiet"],
+                ["cpio", "-c", "-o", "--quiet", "--renumber-inodes", "--ignore-devno"],
                 cwd=root,
-                input=find_result.stdout,
+                input=file_list,
                 capture_output=True,
                 check=True,
             )
             gzip_result = subprocess.run(
-                ["gzip", "-9"],
+                ["gzip", "-9", "-n"],
                 input=cpio_result.stdout,
                 capture_output=True,
                 check=True,
@@ -144,34 +188,89 @@ class ISOBuilder:
                     (conf_d_dest / out_name).write_text(rendered)
                     self.log.info("Anaconda: rendered conf.d/%s", out_name)
 
-    def verify_iso(self) -> None:
-        """Verify the source ISO integrity using Fedora's OpenPGP-signed checksum."""
-        input_dir = Path(self.args.input_dir)
-        src_iso = input_dir / self.cfg.input.iso_filename
-        checksum_file = input_dir / self.cfg.input.checksum_filename
-
-        if not checksum_file.exists():
-            self.log.error("Checksum file not found: %s", checksum_file)
+    def ensure_iso(self) -> Path:
+        """Resolve, download (if needed) and validate the source ISO."""
+        try:
+            source = resolve_iso(self.iso_id)
+        except KeyError as exc:
+            self.log.error("%s", exc)
             sys.exit(1)
+
+        self.log.info("Source ISO: %s (%s)", source.id, source.iso_filename)
+        iso_path = Path(self.args.output_dir) / source.iso_filename
+
+        if iso_path.exists():
+            self.log.info("Found cached ISO %s; validating sha256...", iso_path)
+            actual = self._sha256(iso_path)
+            if actual != source.sha256:
+                self.log.error(
+                    "Cached ISO failed sha256 validation:\n  expected %s\n  actual   %s\n"
+                    "Refusing to use it. Remove %s and re-run to download a fresh copy.",
+                    source.sha256,
+                    actual,
+                    iso_path,
+                )
+                sys.exit(1)
+            self.log.info("Cached ISO sha256 OK; skipping download.")
+            return iso_path
+
+        self._download(source.iso_url, iso_path, "ISO")
+
+        actual = self._sha256(iso_path)
+        if actual != source.sha256:
+            iso_path.unlink(missing_ok=True)
+            self.log.error(
+                "Downloaded ISO sha256 mismatch:\n  expected %s\n  actual   %s",
+                source.sha256,
+                actual,
+            )
+            sys.exit(1)
+        self.log.info("Downloaded ISO sha256 OK.")
+
+        if self.args.skip_verify:
+            self.log.info("Skipping OpenPGP signature verification.")
+        else:
+            self._verify_iso_signature(source, iso_path)
+
+        return iso_path
+
+    def _download(self, url: str, dest: Path, label: str) -> None:
+        """Download ``url`` to ``dest`` atomically via curl, failing loudly on error."""
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        tmp = dest.with_name(dest.name + ".part")
+        self.log.info("Downloading %s from %s", label, url)
+        result = subprocess.run(
+            ["curl", "-fSL", "--retry", "3", "-o", str(tmp), url],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            tmp.unlink(missing_ok=True)
+            self.log.error("Failed to download %s:\n%s", label, result.stderr)
+            sys.exit(1)
+        tmp.replace(dest)
+
+    @staticmethod
+    def _sha256(path: Path) -> str:
+        """Return the hex sha256 digest of a file."""
+        sha = hashlib.sha256()
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                sha.update(chunk)
+        return sha.hexdigest()
+
+    def _verify_iso_signature(self, source: ISOSource, iso_path: Path) -> None:
+        """Verify the ISO against Fedora's OpenPGP-signed checksum file."""
+        checksum_file = Path(self.args.output_dir) / source.checksum_filename
+        self._download(source.checksum_url, checksum_file, "checksum")
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             gpg_path = Path(tmp_dir) / "fedora.gpg"
-
-            self.log.info("Downloading Fedora OpenPGP certificate...")
-            result = subprocess.run(
-                [
-                    "curl",
-                    "-sSf",
-                    "-o",
-                    str(gpg_path),
-                    "https://fedoraproject.org/fedora.gpg",
-                ],
-                capture_output=True,
-                text=True,
+            self._download(
+                "https://fedoraproject.org/fedora.gpg",
+                gpg_path,
+                "Fedora OpenPGP certificate",
             )
-            if result.returncode != 0:
-                self.log.error("Failed to download Fedora GPG keyring:\n%s", result.stderr)
-                sys.exit(1)
 
             self.log.info("Verifying checksum file signature and ISO integrity...")
             gpgv = subprocess.run(
@@ -196,7 +295,7 @@ class ISOBuilder:
                 ["sha256sum", "-c", "--ignore-missing"],
                 input=gpgv.stdout,
                 capture_output=True,
-                cwd=src_iso.parent,
+                cwd=iso_path.parent,
             )
             if sha256sum.returncode != 0:
                 self.log.error(
@@ -206,7 +305,7 @@ class ISOBuilder:
                 )
                 sys.exit(1)
 
-        self.log.info("ISO integrity verified successfully.")
+        self.log.info("ISO OpenPGP signature verified successfully.")
 
     def build_iso(
         self,
@@ -216,9 +315,7 @@ class ISOBuilder:
         setup_dir: Path | None = None,
     ) -> Path:
         """Use mkksiso to embed the kickstart into the source ISO."""
-        if src_iso is None:
-            src_iso = Path(self.args.input_dir) / self.cfg.input.iso_filename
-        if not src_iso.exists():
+        if src_iso is None or not src_iso.exists():
             self.log.error("Source ISO not found: %s", src_iso)
             sys.exit(1)
 
@@ -265,8 +362,14 @@ class ISOBuilder:
                 "url": self.cfg.specs.url,
                 "branch": self.cfg.specs.branch,
             },
+            "credentials": self.cfg.credentials.to_dict(),
             "role_vars": self.cfg.firstboot.role_vars,
             "firstboot_extra_roles": self.cfg.firstboot.extra_roles,
+            "firstboot": self.cfg.firstboot.firstboot,
+            "debug": {
+                "no_log": self.cfg.debug.no_log,
+                "verbosity": self.cfg.debug.verbosity,
+            },
         }
         return yaml.safe_dump(data, sort_keys=False, default_flow_style=False)
 
@@ -292,13 +395,18 @@ class ISOBuilder:
                 collections_src,
             )
 
-        # Custom credential script if `potos_firstboot_credentials_source=script`
-        script_src = Path(self.args.input_dir) / "credentials.sh"
-        if script_src.is_file():
-            dst = setup / "credentials.sh"
-            shutil.copy2(script_src, dst)
-            dst.chmod(0o755)
-            self.log.info("setup/: bundled credentials script from %s", script_src)
+        # Hash-pinned firstboot venv lock. Skipped when ansible_core_version
+        # overrides it (firstboot then installs that version directly).
+        if not self.cfg.firstboot.ansible_core_version:
+            req_src = Path("./firstboot/requirements.txt")
+            if req_src.is_file():
+                shutil.copy2(req_src, setup / "requirements.txt")
+                self.log.info("setup/: bundled firstboot lock %s", req_src)
+            else:
+                self.log.warning(
+                    "%s not found; firstboot ansible-core install will fail",
+                    req_src,
+                )
 
         # Branding logo shown by the firstboot dialogs (installed persistently
         # by finish.sh; the staging dir itself is removed after install).
@@ -307,27 +415,60 @@ class ISOBuilder:
             logo_src = Path("./branding/pixmaps/sidebar-logo.png")
         shutil.copy2(logo_src, setup / "logo.png")
         self.log.info("setup/: bundled firstboot logo from %s", logo_src)
+
+        # .bmp for systemd-boot and .png for grub
+        self._stage_splash(setup, "splash.bmp")
+        self._stage_splash(setup, "splash.png")
         return staging
+
+    def _stage_splash(self, setup: Path, name: str) -> None:
+        """Copy a boot splash asset (input/ override, else branding/boot/) into setup/."""
+        src = Path(self.args.input_dir) / name
+        if src.is_file():
+            self.log.info("setup/: using custom boot splash from %s", src)
+        else:
+            src = Path("./branding/boot") / name
+        if src.is_file():
+            shutil.copy2(src, setup / name)
+            self.log.info("setup/: bundled boot splash %s from %s", name, src)
+        else:
+            self.log.warning("No boot splash %s found in input/ or branding/boot/", name)
 
     def render_kickstart(self) -> str:
         """Render the kickstart file (with finish.sh as %post body)."""
-        build_date = datetime.now().strftime("%Y-%m-%d %H:%M")
-
         post_scripts = render_template(
-            "finish.sh.j2",
+            "firstboot.sh.j2",
             {
                 "config": self.cfg,
-                "build_date": build_date,
+                "build_date": self.build_date,
+                "build_ref": self.build_ref,
                 "config_yaml": self._config_yaml(),
             },
         )
+
+        uki_scripts = ""
+        if self.cfg.uki.enabled:
+            if self.cfg.bootloader.type != "systemd-boot":
+                self.log.error(
+                    "uki.enabled requires bootloader.type == 'systemd-boot' (got %r)",
+                    self.cfg.bootloader.type,
+                )
+                sys.exit(1)
+            self.log.info("UKI enabled: generating signed UKI + shim + per-host MOK setup")
+            uki_scripts = render_template(
+                "uki.sh.j2",
+                {
+                    "config": self.cfg,
+                },
+            )
 
         return render_template(
             "kickstart.cfg.j2",
             {
                 "config": self.cfg,
-                "build_date": build_date,
+                "build_date": self.build_date,
                 "post_scripts": post_scripts,
+                "uki_scripts": uki_scripts,
             },
         )
 
@@ -365,9 +506,7 @@ class ISOBuilder:
         """Customize boot menu labels to show the configured OS name.
 
         Extracts boot/grub2/grub.cfg from the ISO to detect the Fedora product
-        name, then calls mkksiso --replace so that every boot config file
-        (including the embedded efiboot.img read by UEFI) is updated in one
-        pass.
+        name, then calls mkksiso --replace so that every boot config file is updated
         """
         os_name = self.cfg.client_name.long
         version = str(self.cfg.fedora_version)
@@ -419,12 +558,7 @@ class ISOBuilder:
             self.log.info("Boot menu now shows: %s", os_name)
 
     def _compute_label_replacements(self, content: str, os_name: str, version: str) -> list[tuple[str, str]]:
-        """Return (from, to) pairs for Fedora boot menu label substitution.
-
-        Auto-detects the Fedora variant (e.g. 'Fedora Server') from menuentry
-        titles and returns replacements for both the versioned form
-        ('Fedora Server 44') and the bare product name used in rescue entries.
-        """
+        """Return (from, to) pairs for Fedora boot menu label substitution."""
         match = re.search(r"menuentry\s+['\"].*?(Fedora\s+\w+)\s+" + re.escape(version), content)
         if match:
             fedora_product = match.group(1)  # e.g. "Fedora Server"
@@ -438,27 +572,40 @@ class ISOBuilder:
 
     def write_checksum(self, iso_path: Path):
         """Generate SHA256 checksum file for the output ISO."""
-        sha256 = hashlib.sha256()
-        with open(iso_path, "rb") as f:
-            for chunk in iter(lambda: f.read(8192), b""):
-                sha256.update(chunk)
-        checksum = sha256.hexdigest()
+        checksum = self._sha256(iso_path)
         checksum_path = iso_path.with_suffix(".iso.sha256")
         checksum_path.write_text(f"{checksum}  {iso_path.name}\n")
         self.log.info("Checksum written: %s", checksum_path)
 
+    def validate_config(self) -> None:
+        """Validate config before building."""
+        self._validate_user_config()
+
+    def _validate_user_config(self) -> None:
+        """Guard against account configs that leave the system with no login."""
+        if self.cfg.initial_user.username:
+            return
+
+        if "UserSpoke" in self.cfg.anaconda.hidden_spokes:
+            self.log.error(
+                "initial_user.username is empty but UserSpoke is hidden: "
+                "the installed system would have a locked root and no "
+                "login account, so firstboot could never run. Either set "
+                "initial_user.username, or remove UserSpoke from "
+                "anaconda.hidden_spokes so an account can be created during "
+                "the (interactive) install."
+            )
+            sys.exit(1)
+
     def start(self):
         """Main entry point to start the build process."""
-        if not self.args.skip_verify:
-            self.verify_iso()
-        else:
-            self.log.info("Skipping ISO verification (--skip-verify).")
+        self.validate_config()
+
+        # Download (or reuse the cached, validated) source ISO into output/.
+        src_iso = self.ensure_iso()
 
         ks_content = self.render_kickstart()
         ks_path = self.write_kickstart(ks_content)
-
-        # Patch the installer ISO with additional packages if configured
-        src_iso = Path(self.args.input_dir) / self.cfg.input.iso_filename
 
         updates_img = None
         addons_root = Path("./addons")
@@ -494,6 +641,9 @@ def render_template(template_name: str, context: dict, template_dir: Path = TEMP
         trim_blocks=True,
         lstrip_blocks=True,
     )
+    # `quote` shell-escapes a value for safe interpolation into the rendered
+    # bash scripts (e.g. the MOK password, collection_source).
+    env.filters["quote"] = shlex.quote
     return env.get_template(template_name).render(**context)
 
 
@@ -519,13 +669,20 @@ def parse_args() -> argparse.Namespace:
         type=str,
         action="store",
         default="input",
-        help="Directory containing the source ISO and checksum file (default: input/)",
+        help="Directory containing build inputs: collections, branding overrides (default: input/)",
+    )
+    parser.add_argument(
+        "--iso",
+        type=str,
+        action="store",
+        default="",
+        help="Override the source ISO by catalog id (default: config input.iso, else the catalog default)",
     )
     parser.add_argument(
         "--skip-verify",
         action="store_true",
         default=False,
-        help="Skip ISO integrity verification (default: verify)",
+        help="Skip the ISO OpenPGP signature verification (the sha256 check still runs)",
     )
     parser.add_argument(
         "--output-dir",
@@ -533,6 +690,12 @@ def parse_args() -> argparse.Namespace:
         action="store",
         default="output",
         help="Directory to save the generated ISO and artifacts (default: output/)",
+    )
+    parser.add_argument(
+        "--source-date-epoch",
+        type=int,
+        default=None,
+        help="Fixed Unix timestamp for reproducible build dates (default: SOURCE_DATE_EPOCH env, else omitted)",
     )
     return parser.parse_args()
 

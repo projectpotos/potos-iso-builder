@@ -1,0 +1,173 @@
+---
+# Best-practice Potos client
+
+client_name:
+  short: "potos"
+  long: "Potos Linux Client"
+
+fedora_version: 44
+
+extra_repos: []
+
+output:
+  version: "1.0"
+  iso_filename: "potos-installer.iso"
+
+specs:
+  url: "https://github.com/your-org/potos-specs.git"
+  branch: "main"
+
+credentials:
+  specs_token:
+    backend: systemd-creds
+    path: /etc/potos/specs_token.cred
+    name: specs-token
+  ansible_vault_key:
+    backend: file
+    path: /etc/potos/ansible_vault_key
+    name: ansible-vault-key
+
+collection_source: ""
+
+disk_encryption:
+  enabled: true
+  init_password: "changeme"
+
+partitioning:
+  mode: custom
+  type: btrfs
+  efi:
+    fstype: efi
+    size: 1024
+  boot:
+    enabled: false
+  root:
+    layout: btrfs
+    label: fedora
+    grow: true
+    subvolumes:
+      - name: "@"
+        mountpoint: /
+      - name: "@home"
+        mountpoint: /home
+      - name: "@cache"
+        mountpoint: /var/cache
+      - name: "@log"
+        mountpoint: /var/log
+
+bootloader:
+  type: systemd-boot
+
+uki:
+  enabled: true
+  mok_password: "changeme"
+  cmdline_extra: ""
+
+firewall:
+  enabled: true
+
+locale:
+  lang: "en_US.UTF-8"
+  # keyboard: "us"
+  timezone: "UTC"
+
+network:
+  bootproto: "dhcp"
+  device: "link"
+  activate: true
+
+initial_hostname: "potos-bootstrap"
+
+initial_user:
+  username: "admin"
+  # Default to "potos". replace it with openssl passwd -6
+  password_hash: "$6$anXOuiWGKciAIFeD$mlYKotVh1phov5oTsOVxj2/L7vGxAy4VojtxXSPa..9q7EdKwK99xoRbcY5UI4DN4kK7r0ODuRgbDvKIiEhMl0"
+
+authselect:
+  features:
+    - with-faillock
+
+packages:
+  exclude:
+    - openssh-server
+    - gssproxy
+    - nfs-utils
+    - "sssd*"
+    - "abrt*"
+  groups:
+    - ^workstation-product-environment
+    - gnome-desktop
+  install:
+    - vim
+
+post_install: "shutdown"
+
+firstboot:
+  firstboot:
+    steps:
+      - id: set_hostname
+        uses: hostname/change
+        input:
+          ask: true
+
+      - id: rotate_password
+        uses: user/rotate_password
+        input:
+          ask: true
+          username: admin
+
+      - id: luks_random_rotate
+        uses: luks/random_rotate
+        input:
+          current_passphrase: "changeme"
+          length: 32
+
+      - id: bao_login
+        uses: openbao/login
+        input:
+          url: "https://bao.example.com"
+          mount: oidc
+          method: oidc
+          role: potos-clients
+          callback_mode: device
+          callback_host: localhost
+          listen_address: 127.0.0.1
+
+      - id: bao_read_specs_token
+        uses: openbao/read
+        input:
+          url: "https://bao.example.com"
+          token: "{{ steps.bao_login.token }}"
+          path: "secret/potos/specs"
+          field: token
+
+      - id: store_specs_token
+        uses: systemd_creds/store
+        input:
+          name: specs-token
+          secret: "{{ steps.bao_read_specs_token.value }}"
+          path: /etc/potos/specs_token.cred
+          with_key: host+tpm2
+          tpm2_pcrs: ["7"]
+
+      - id: bao_escrow_recovery
+        uses: openbao/write
+        input:
+          url: "https://bao.example.com"
+          token: "{{ steps.bao_login.token }}"
+          path: "secret/potos/luks/{{ ansible_facts.machine_id }}"
+          data: "{{ {'passphrase': steps.luks_random_rotate.passphrase} }}"
+
+      - id: luks_tpm_unlock
+        uses: luks/tpm_unlock
+        input:
+          passphrase: "{{ steps.luks_random_rotate.passphrase }}"
+          tpm2_device: auto
+          tpm2_pcrs: ["7"]
+          tpm2_public_key_pcrs: ["11"]
+          tpm2_public_key: "/etc/secureboot/pcr.pub.pem"
+          wipe_slots: tpm2
+
+debug:
+  no_log: false
+  verbosity: 0

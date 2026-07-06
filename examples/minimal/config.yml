@@ -1,0 +1,80 @@
+---
+# Minimal Potos client.
+
+client_name:
+  short: "potos"
+  long: "Potos Linux Client"
+
+fedora_version: 44
+
+output:
+  version: "1.0"
+  iso_filename: "potos-installer.iso"
+
+specs:
+  url: ""
+  branch: "main"
+
+collection_source: ""
+
+disk_encryption:
+  enabled: true
+  init_password: "changeme"
+
+partitioning:
+  mode: auto
+  type: btrfs
+
+bootloader:
+  type: grub
+uki:
+  enabled: false
+
+firewall:
+  enabled: true
+
+locale:
+  lang: "en_US.UTF-8"
+  # keyboard: "us"
+  timezone: "UTC"
+
+network:
+  bootproto: "dhcp"
+  device: "link"
+  activate: true
+
+initial_hostname: "potos-bootstrap"
+
+initial_user:
+  username: "admin"
+  # Default to "potos". replace it with openssl passwd -6
+  password_hash: "$6$anXOuiWGKciAIFeD$mlYKotVh1phov5oTsOVxj2/L7vGxAy4VojtxXSPa..9q7EdKwK99xoRbcY5UI4DN4kK7r0ODuRgbDvKIiEhMl0"
+
+packages:
+  groups:
+    - ^workstation-product-environment
+  install:
+    - vim
+
+post_install: "reboot"
+
+firstboot:
+  firstboot:
+    steps:
+      - id: set_hostname
+        uses: hostname/change
+        input:
+          ask: true
+      - id: rotate_password
+        uses: user/rotate_password
+        input:
+          ask: true
+          username: admin
+      - id: rotate_disk_passphrase
+        uses: luks/user_rotate
+        input:
+          ask: true
+
+debug:
+  no_log: false
+  verbosity: 0

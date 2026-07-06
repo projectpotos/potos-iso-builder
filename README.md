@@ -8,6 +8,7 @@ Build customized Fedora installer ISOs with kickstart templating.
 * libvirt with a qemu user session
   * `virt-manager` is installed
   * You have a QEMU/KVM User-Session (virsh link: `qemu:///session`) configured.
+  * `virt-firmware` is required to test secure boot features
   * your user is member of the `kvm` group
   * `virt-install --osinfo list` knows about `fedora43`. If not, you will have to edit `tests/scripts/bootstrap.sh` and set `OS_VARIANT` to the highest fedora version you found in this list. Tested with `fedora42` successfully.
 * docker and docker-compose are installed
@@ -19,31 +20,51 @@ Build customized Fedora installer ISOs with kickstart templating.
   * also called `task` in some distros
     * Ubuntu: `snap install task --classic`
 
-### Download ISO and Checksum
-```
-curl -Lo input/Fedora-Server-dvd-x86_64-43-1.6.iso https://download.fedoraproject.org/pub/fedora/linux/releases/43/Server/x86_64/iso/Fedora-Server-dvd-x86_64-43-1.6.iso
-curl -Lo input/Fedora-Server-43-1.6-x86_64-CHECKSUM https://dl.fedoraproject.org/pub/fedora/linux/releases/43/Server/x86_64/iso/Fedora-Server-43-1.6-x86_64-CHECKSUM
-```
+### Choose a config
 
-### Tasks
+The builder reads `input/config.yml`, which is **not** committed — copy an
+example and edit it:
 
 ```bash
-go-task build-and-bootstrap # build the iso and test it in a VM
-
-go-task test:teardown # remove the testing VM
+cp examples/minimal/config.yml input/config.yml          # easy start
+# or
+cp examples/best-practice/config.yml input/config.yml    # full hardware security
 ```
 
-Alternatively, you can do it more steps:
+### Source ISO
+
+The builder downloads the source Fedora ISO (and its OpenPGP-signed checksum)
+for you and caches it under `output/`.
+
+### Build your ISO
 
 ```bash
-go-task build            # build the iso
-go-task test:bootstrap   # create a VM in the local libvirt user session with that iso
-go-task test:teardown    # remove the testing VM
+go-task build:all   # build the projectpotos.base collection tarball + the ISO (-> output/)
+go-task build       # just the ISO (collection already staged)
+```
+
+### Test the reference fixture in a VM
+
+The e2e harness builds and boots the committed fixture at `tests/input/config.yml`
+(into `tests/output/`), keeping it decoupled from your own `input/` workspace:
+
+```bash
+go-task build-and-bootstrap   # build the fixture ISO and boot it in a VM
+go-task test:teardown         # remove the testing VM
+```
+
+Or step by step:
+
+```bash
+go-task build:test        # build tests/input/config.yml -> tests/output/
+go-task test:bootstrap    # create a libvirt VM from the fixture ISO
+go-task test:teardown     # remove the testing VM
 ```
 
 ### Notes
-* You should set a new disk encryption password (default: `kickstart`)
-* You should set a new `admin` user password (default: `password`)
+* Rotate the bootstrap secrets the examples ship with (the disk
+  `init_password` and `uki.mok_password`) and the `admin`
+  `password_hash` before any real use — they are intentionally well-known.
 
 ## Testing
 

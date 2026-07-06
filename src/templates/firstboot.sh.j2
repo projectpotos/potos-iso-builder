@@ -7,15 +7,12 @@
 # Layout produced:
 #   /etc/potos/config.yml                       -- single non-secret system config
 #   /opt/potos-firstboot/venv                   -- ansible-core virtualenv
-#   /usr/share/ansible/collections/...          -- bundled potos.base collection
+#   /usr/share/ansible/collections/...          -- bundled projectpotos.base collection
 #   /usr/libexec/potos/firstboot-wrapper.sh     -- launches the firstboot playbook
 #   /etc/xdg/autostart/potos-firstboot.desktop  -- triggers wrapper on login
-#   /usr/libexec/potos/credentials.sh           -- user-defined credential script
 
 set -euo pipefail
 
-# Anaconda's chroot has no locale configured; ansible-core refuses to run
-# unless LANG/LC_ALL are valid UTF-8.
 export LANG=C.UTF-8
 export LC_ALL=C.UTF-8
 
@@ -36,16 +33,22 @@ chmod 0640 /etc/potos/config.yml
 
 # --- Version stamp --------------------------------------------------------
 cat >/etc/potos/version <<EOF
-{{ config.client_name.short }} {{ config.output.version }} ({{ build_date }})
+{{ config.client_name.short }} {{ config.output.version }}{% if build_ref %} ({{ build_ref }}){% elif build_date %} ({{ build_date }}){% endif +%}
 EOF
 
 # --- Prerequisites + venv + collection -----------------------------------
-dnf install -y git python3 python3-pip python3-virtualenv polkit
+dnf install -y {% if not config.payload.include_updates %}--disablerepo='updates*' {% endif %}git python3 python3-pip python3-virtualenv polkit
 
 python3 -m venv /opt/potos-firstboot/venv
-/opt/potos-firstboot/venv/bin/pip install --upgrade pip ansible-core
+{% if config.firstboot.ansible_core_version %}
+# Version pinned via firstboot.ansible_core_version in the build config.
+/opt/potos-firstboot/venv/bin/pip install "ansible-core=={{ config.firstboot.ansible_core_version }}"
+{% else %}
+# Hash-pinned (firstboot/requirements.txt)
+/opt/potos-firstboot/venv/bin/pip install --require-hashes -r "${SETUP_DIR}/requirements.txt"
+{% endif %}
 
-# Install the potos.base ansible collection.
+# Install the projectpotos.base ansible collection.
 mkdir -p /usr/share/ansible/collections
 {% if config.collection_source %}
 # Configured source: {{ config.collection_source }}
@@ -66,19 +69,30 @@ else
 fi
 {% endif %}
 
-# --- Credential script ------------------------------------------------------
-if [ -f "${SETUP_DIR}/credentials.sh" ]; then
-  install -m 0750 -o root -g root \
-    "${SETUP_DIR}/credentials.sh" /usr/libexec/potos/credentials.sh
-fi
-
-# --- Firstboot branding logo -------------------------------------------------
-# Installed to a persistent path because SETUP_DIR is removed below; the
-# firstboot dialogs reference it via the role's potos_firstboot_logo default.
+# --- Branding ---------------------------------------------------------------
 if [ -f "${SETUP_DIR}/logo.png" ]; then
   install -d -m 0755 -o root -g root /usr/share/potos
   install -m 0644 -o root -g root "${SETUP_DIR}/logo.png" /usr/share/potos/logo.png
 fi
+
+if [ -f "${SETUP_DIR}/splash.bmp" ]; then
+  install -d -m 0755 -o root -g root /usr/share/systemd/bootctl
+  install -m 0644 -o root -g root \
+    "${SETUP_DIR}/splash.bmp" \
+    /usr/share/systemd/bootctl/splash-{{ config.client_name.short }}.bmp
+fi
+{% if config.bootloader.type != 'systemd-boot' %}
+if [ -f "${SETUP_DIR}/splash.png" ]; then
+  install -d -m 0755 -o root -g root /boot/grub2
+  install -m 0644 -o root -g root "${SETUP_DIR}/splash.png" /boot/grub2/splash.png
+  if grep -q '^GRUB_BACKGROUND=' /etc/default/grub 2>/dev/null; then
+    sed -i 's#^GRUB_BACKGROUND=.*#GRUB_BACKGROUND="/boot/grub2/splash.png"#' /etc/default/grub
+  else
+    echo 'GRUB_BACKGROUND="/boot/grub2/splash.png"' >>/etc/default/grub
+  fi
+  grub2-mkconfig -o /boot/grub2/grub.cfg
+fi
+{% endif %}
 
 # --- Firstboot wrapper + autostart ---------------------------------------
 cat >/usr/libexec/potos/firstboot-wrapper.sh <<'WRAPPER'
@@ -111,16 +125,28 @@ export LC_ALL="${LC_ALL:-C.UTF-8}"
 LOG=/var/log/{{ config.client_name.short }}/firstboot.log
 mkdir -p "$(dirname "${LOG}")"
 
-COLLECTION_ROOT=/usr/share/ansible/collections/ansible_collections/potos/base
+COLLECTION_ROOT=/usr/share/ansible/collections/ansible_collections/projectpotos/base
 if [ ! -d "${COLLECTION_ROOT}" ]; then
-  echo "ERROR: potos.base collection not installed under ${COLLECTION_ROOT}" >&2
+  echo "ERROR: projectpotos.base collection not installed under ${COLLECTION_ROOT}" >&2
   /opt/potos-firstboot/venv/bin/ansible-galaxy collection list 2>&1 | tee -a "${LOG}" >&2
   exit 1
 fi
 
+VERBOSITY_OPT=()
+LEVEL=0
+if [ -f /etc/potos/config.yml ]; then
+  LEVEL="$(yq '.debug.verbosity // 0' /etc/potos/config.yml 2>/dev/null)" || LEVEL=0
+fi
+[[ "${LEVEL}" =~ ^[0-9]+$ ]] || LEVEL=0
+[ "${LEVEL}" -gt 4 ] && LEVEL=4
+if [ "${LEVEL}" -gt 0 ]; then
+  VERBOSITY_OPT=("-$(printf 'v%.0s' $(seq 1 "${LEVEL}"))")
+fi
+
 /opt/potos-firstboot/venv/bin/ansible-playbook \
   -i localhost, -c local \
-  potos.base.firstboot \
+  "${VERBOSITY_OPT[@]}" \
+  projectpotos.base.firstboot \
   2>&1 | tee -a "${LOG}"
 WRAPPER
 

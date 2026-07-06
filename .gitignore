@@ -1,13 +1,22 @@
 *.iso
 *.iso.bak
 *.sha256
+
+# Generated Secure Boot vars store (enrolled keys) for the test VM
+tests/scripts/OVMF_VARS.secboot.4m.fd
 .venv/
 __pycache__/
 .pytest_cache/
 
+# Root input/output are the user's local build workspace (not committed).
 /output/*
 !/output/.gitkeep
 
 /input/*
 !/input/.gitkeep
-!/input/config.yml
+
+/tests/input/*
+!/tests/input/config.yml
+
+/tests/output/*
+!/tests/output/.gitkeep
