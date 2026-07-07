@@ -128,22 +128,6 @@ firstboot:
           ask: true
           username: admin
 
-      # - id: bao_login
-      #   uses: openbao/login
-      #   input:
-      #     url: https://bao.adfinis.com
-      #     mount: oidc
-      #     method: oidc
-      #     callback_host: localhost
-      #     listen_address: 127.0.0.1
-      #     role: device
-      #     callback_mode: device
-
-      # - id: luks_random_rotate
-      #   uses: luks/random_rotate
-      #   input:
-      #     current_passphrase: "kickstart"
-      #     length: 32
       - id: luks_user_rotate
         uses: luks/user_rotate
         input:
@@ -169,16 +153,6 @@ firstboot:
           tpm2_public_key: "/etc/secureboot/pcr.pub.pem"
           passphrase: "{{ steps.luks_user_rotate.passphrase }}"
 
-      # - id: bao_write_luks
-      #   uses: openbao/write
-      #   input:
-      #     url: https://bao.adfinis.com
-      #     token: "{{ steps.bao_login.token }}"
-      #     path: adfinis-kv/services/potos/luks/ag08-u02
-      #     data: "{{ {
-      #       'passphrase': steps.luks_random_rotate.passphrase,
-      #       'machine_id': ansible_facts.machine_id
-      #       } }}"
       - id: systemd_creds_store
         uses: systemd_creds/store
         input:

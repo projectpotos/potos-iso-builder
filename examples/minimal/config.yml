@@ -74,6 +74,7 @@ firstboot:
         uses: luks/user_rotate
         input:
           ask: true
+          current_passphrase: "changeme"
 
 debug:
   no_log: false

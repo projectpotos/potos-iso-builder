@@ -17,6 +17,8 @@ class ISOSource:
     sha256: str
 
 
+# TODO: Test with netinstall ISO
+
 SUPPORTED_ISOS: dict[str, ISOSource] = {
     "fedora-server-44-1.7": ISOSource(
         id="fedora-server-44-1.7",

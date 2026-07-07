@@ -23,8 +23,8 @@ credentials:
     path: /etc/potos/specs_token.cred
     name: specs-token
   ansible_vault_key:
-    backend: file
-    path: /etc/potos/ansible_vault_key
+    backend: systemd-creds
+    path: /etc/potos/ansible_vault_key.cred
     name: ansible-vault-key
 
 collection_source: ""
