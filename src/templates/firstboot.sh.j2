@@ -37,7 +37,7 @@ cat >/etc/potos/version <<EOF
 EOF
 
 # --- Prerequisites + venv + collection -----------------------------------
-dnf install -y {% if not config.payload.include_updates %}--disablerepo='updates*' {% endif %}git python3 python3-pip python3-virtualenv polkit
+dnf install -y {% if not config.payload.include_updates %}--disablerepo='updates*' {% endif %}git python3 python3-pip python3-virtualenv polkit yad
 
 python3 -m venv /opt/potos-firstboot/venv
 {% if config.firstboot.ansible_core_version %}
@@ -122,6 +122,26 @@ export ANSIBLE_COLLECTIONS_PATH="${ANSIBLE_COLLECTIONS_PATH:-/usr/share/ansible/
 export LANG="${LANG:-C.UTF-8}"
 export LC_ALL="${LC_ALL:-C.UTF-8}"
 
+error_dialog() {
+  local body="$1" rundir uid name wayland
+  for rundir in /run/user/*; do
+    uid="${rundir##*/}"
+    [[ "${uid}" =~ ^[0-9]+$ ]] || continue
+    name="$(/usr/bin/id -nu "${uid}" 2>/dev/null)" || continue
+    wayland=""
+    [ -S "${rundir}/wayland-0" ] && wayland="wayland-0"
+    /usr/sbin/runuser -u "${name}" -- /usr/bin/env \
+      XDG_RUNTIME_DIR="${rundir}" \
+      WAYLAND_DISPLAY="${wayland}" \
+      DISPLAY="${DISPLAY:-:0}" \
+      XAUTHORITY="${XAUTHORITY:-}" \
+      /usr/bin/yad --title="{{ config.client_name.long }} firstboot" \
+        --image=dialog-error --window-icon=dialog-error \
+        --button=Close:0 --center --borders=12 --width=420 \
+        --text="${body}" >/dev/null 2>&1 || true &
+  done
+}
+
 LOG=/var/log/{{ config.client_name.short }}/firstboot.log
 mkdir -p "$(dirname "${LOG}")"
 
@@ -143,11 +163,19 @@ if [ "${LEVEL}" -gt 0 ]; then
   VERBOSITY_OPT=("-$(printf 'v%.0s' $(seq 1 "${LEVEL}"))")
 fi
 
+RC=0
 /opt/potos-firstboot/venv/bin/ansible-playbook \
   -i localhost, -c local \
   "${VERBOSITY_OPT[@]}" \
   projectpotos.base.firstboot \
-  2>&1 | tee -a "${LOG}"
+  2>&1 | tee -a "${LOG}" || RC=$?
+
+if [ "${RC}" -ne 0 ]; then
+  error_dialog "Attention: {{ config.client_name.long }} firstboot setup failed.
+See ${LOG} for details."
+fi
+
+exit "${RC}"
 WRAPPER
 
 chmod 0755 /usr/libexec/potos/firstboot-wrapper.sh
