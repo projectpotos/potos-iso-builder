@@ -436,6 +436,13 @@ class ISOBuilder:
 
     def render_kickstart(self) -> str:
         """Render the kickstart file (with finish.sh as %post body)."""
+        if self.cfg.firstboot.on_success not in ("logout", "reboot", "shutdown"):
+            self.log.error(
+                "firstboot.on_success must be 'logout', 'reboot' or 'shutdown' (got %r)",
+                self.cfg.firstboot.on_success,
+            )
+            sys.exit(1)
+
         post_scripts = render_template(
             "firstboot.sh.j2",
             {

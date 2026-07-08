@@ -165,9 +165,24 @@ RC=0
 if [ "${RC}" -ne 0 ]; then
   error_dialog "Attention: {{ config.client_name.long }} firstboot setup failed.
 See ${LOG} for details."
+  exit "${RC}"
 fi
 
-exit "${RC}"
+# Success: firstboot.on_success = {{ config.firstboot.on_success }}
+{% if config.firstboot.on_success == 'reboot' %}
+systemctl reboot
+{% elif config.firstboot.on_success == 'shutdown' %}
+systemctl poweroff
+{% else %}
+# End the session that ran the wizard so the next login starts clean.
+# PKEXEC_UID is set by pkexec to the UID of the invoking (logged-in) user;
+# skip when absent (e.g. wrapper run manually as root).
+if [ -n "${PKEXEC_UID:-}" ]; then
+  loginctl terminate-user "${PKEXEC_UID}"
+fi
+{% endif %}
+
+exit 0
 WRAPPER
 
 chmod 0755 /usr/libexec/potos/firstboot-wrapper.sh
