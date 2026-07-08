@@ -1,30 +1,23 @@
 """Configuration for the potos iso builder."""
 
-import re
 from dataclasses import dataclass
 
 
 @dataclass
 class ClientName:
-    """Client name configuration."""
+    """Client name configuration.
+
+    Both names are display labels (installer title, dialog titles, version
+    stamp). All filenames, paths and systemd units use literal "potos".
+    """
 
     short: str
     long: str
 
     @classmethod
     def from_dict(cls, data: dict):
-        # `short` ends up in paths (/var/lib/<short>, /var/log/<short>) and
-        # systemd unit names, and the collection lowercases it everywhere.
-        # Reject anything that would make those diverge.
-        short = data.get("short", "potos")
-        if not re.fullmatch(r"[a-z][a-z0-9-]*", short):
-            raise ValueError(
-                f"client_name.short {short!r} is invalid: it is used in paths and"
-                " systemd unit names and must be lowercase letters, digits or"
-                " dashes, starting with a letter (e.g. 'potos')"
-            )
         return cls(
-            short=short,
+            short=data.get("short", "potos"),
             long=data.get("long", "Potos Linux Client"),
         )
 
