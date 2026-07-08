@@ -325,6 +325,7 @@ class Firstboot:
     role_vars: dict
     firstboot: dict
     ansible_core_version: str
+    on_success: str  # logout | reboot | shutdown
 
     @classmethod
     def from_dict(cls, data: dict):
@@ -334,6 +335,7 @@ class Firstboot:
             firstboot=data.get("firstboot", {}),
             # defaults to the hashed lock bundled in the ISO
             ansible_core_version=data.get("ansible_core_version", ""),
+            on_success=data.get("on_success", "logout"),
         )
 
 

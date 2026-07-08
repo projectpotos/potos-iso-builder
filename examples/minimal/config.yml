@@ -59,6 +59,7 @@ packages:
 post_install: "reboot"
 
 firstboot:
+  on_success: logout
   firstboot:
     steps:
       - id: set_hostname

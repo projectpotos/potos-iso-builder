@@ -103,6 +103,7 @@ packages:
 post_install: "shutdown"
 
 firstboot:
+  on_success: reboot
   firstboot:
     steps:
       - id: set_hostname

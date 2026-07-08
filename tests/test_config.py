@@ -302,6 +302,16 @@ def test_firstboot_ansible_core_version_override():
     assert fb.ansible_core_version == "2.20.6"
 
 
+def test_firstboot_on_success_defaults_to_logout():
+    assert Firstboot.from_dict({}).on_success == "logout"
+    assert Config.from_dict({}).firstboot.on_success == "logout"
+
+
+def test_firstboot_on_success_override():
+    assert Firstboot.from_dict({"on_success": "reboot"}).on_success == "reboot"
+    assert Firstboot.from_dict({"on_success": "shutdown"}).on_success == "shutdown"
+
+
 # --- Payload ---------------------------------------------------------------
 
 
