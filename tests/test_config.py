@@ -1,7 +1,10 @@
 """Tests for the Config dataclass and its from_dict constructor."""
 
+import re
 import sys
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -74,6 +77,12 @@ def test_from_dict_partial_config_uses_defaults_for_missing_keys():
     assert config.client_name.long == "Potos Linux Client"  # default
     assert config.disk_encryption.enabled is False  # default
     assert config.initial_hostname == "potos-bootstrap"  # default
+
+
+def test_from_dict_rejects_non_machine_friendly_short_name():
+    for short in ["DailyPlanetOS", "daily planet", "1potos", "-potos", ""]:
+        with pytest.raises(ValueError, match=re.escape("client_name.short")):
+            Config.from_dict({"client_name": {"short": short}})
 
 
 # --- Partitioning ----------------------------------------------------------
