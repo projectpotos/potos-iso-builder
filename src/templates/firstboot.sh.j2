@@ -122,24 +122,16 @@ export ANSIBLE_COLLECTIONS_PATH="${ANSIBLE_COLLECTIONS_PATH:-/usr/share/ansible/
 export LANG="${LANG:-C.UTF-8}"
 export LC_ALL="${LC_ALL:-C.UTF-8}"
 
+# Show the failure via the collection's yad module so the dialog gets the
+# same display handling and branding as the playbook's own dialogs. We run as
+# root with the user's DISPLAY/XAUTHORITY exported, just like the playbook.
 error_dialog() {
-  local body="$1" rundir uid name wayland
-  for rundir in /run/user/*; do
-    uid="${rundir##*/}"
-    [[ "${uid}" =~ ^[0-9]+$ ]] || continue
-    name="$(/usr/bin/id -nu "${uid}" 2>/dev/null)" || continue
-    wayland=""
-    [ -S "${rundir}/wayland-0" ] && wayland="wayland-0"
-    /usr/sbin/runuser -u "${name}" -- /usr/bin/env \
-      XDG_RUNTIME_DIR="${rundir}" \
-      WAYLAND_DISPLAY="${wayland}" \
-      DISPLAY="${DISPLAY:-:0}" \
-      XAUTHORITY="${XAUTHORITY:-}" \
-      /usr/bin/yad --title="{{ config.client_name.long }} firstboot" \
-        --image=dialog-error --window-icon=dialog-error \
-        --button=Close:0 --center --borders=12 --width=420 \
-        --text="${body}" >/dev/null 2>&1 || true &
-  done
+  local body="$1" image=""
+  [ -f /usr/share/potos/logo.png ] && image="image=/usr/share/potos/logo.png image_on_top=true"
+  /opt/potos-firstboot/venv/bin/ansible localhost -i localhost, -c local \
+    -m projectpotos.base.yad \
+    -a "dialog=message title='{{ config.client_name.long }} firstboot' align=center borders=20 ${image} text='${body}'" \
+    >>"${LOG}" 2>&1 || true
 }
 
 LOG=/var/log/{{ config.client_name.short }}/firstboot.log
