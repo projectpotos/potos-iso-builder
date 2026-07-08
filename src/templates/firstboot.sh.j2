@@ -16,7 +16,7 @@ set -euo pipefail
 export LANG=C.UTF-8
 export LC_ALL=C.UTF-8
 
-LOG_DIR="/var/log/{{ config.client_name.short }}"
+LOG_DIR="/var/log/potos"
 SETUP_DIR="/root/potos-setup"
 
 install -d -m 0750 -o root -g root /etc/potos
@@ -79,7 +79,7 @@ if [ -f "${SETUP_DIR}/splash.bmp" ]; then
   install -d -m 0755 -o root -g root /usr/share/systemd/bootctl
   install -m 0644 -o root -g root \
     "${SETUP_DIR}/splash.bmp" \
-    /usr/share/systemd/bootctl/splash-{{ config.client_name.short }}.bmp
+    /usr/share/systemd/bootctl/splash-potos.bmp
 fi
 {% if config.bootloader.type != 'systemd-boot' %}
 if [ -f "${SETUP_DIR}/splash.png" ]; then
@@ -134,7 +134,7 @@ error_dialog() {
     >>"${LOG}" 2>&1 || true
 }
 
-LOG=/var/log/{{ config.client_name.short }}/firstboot.log
+LOG=/var/log/potos/firstboot.log
 mkdir -p "$(dirname "${LOG}")"
 
 COLLECTION_ROOT=/usr/share/ansible/collections/ansible_collections/projectpotos/base
