@@ -709,7 +709,11 @@ def main() -> None:
         log.error("Config file not found: %s", args.config)
         sys.exit(1)
 
-    config = load_config(args.config)
+    try:
+        config = load_config(args.config)
+    except ValueError as e:
+        log.error("Invalid config: %s", e)
+        sys.exit(1)
     builder = ISOBuilder(config, args)
 
     log.info(
