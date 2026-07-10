@@ -9,6 +9,8 @@ updates:
       timezone: "Europe/Zurich"
     cooldown:
       default-days: 7
+      exclude:
+        - "projectpotos/*"
 
   - package-ecosystem: uv
     directory: "/"
