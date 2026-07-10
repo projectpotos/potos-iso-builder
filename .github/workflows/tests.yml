@@ -7,8 +7,7 @@ on:
   pull_request:
   workflow_dispatch:
 
-permissions:
-  contents: read
+permissions: {}
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -19,144 +18,43 @@ jobs:
     name: pytest (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.12", "3.13", "3.14"]
     steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Setup uv project
+        uses: projectpotos/actions/setup-uv@d552491caf4332bd5888c8261db4354a19bf8b9e # v0.2.1
         with:
-          persist-credentials: false
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
-        with:
-          enable-cache: true
           python-version: ${{ matrix.python-version }}
 
       - name: Run pytest
         run: uv run --frozen --group test pytest tests/ -v
 
-  ruff:
-    name: ruff (lint + format)
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
-        with:
-          enable-cache: true
-
-      - name: ruff check
-        run: uv run --frozen --group lint ruff check --output-format=github .
-
-      - name: ruff format
-        run: uv run --frozen --group lint ruff format --check --diff .
-
-  yamllint:
-    name: yamllint
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
-        with:
-          enable-cache: true
-
-      - name: yamllint
-        run: uv run --frozen --group lint yamllint --strict --format github .
-
-  hadolint:
-    name: hadolint
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - name: hadolint
-        uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
-        with:
-          dockerfile: Dockerfile
-          failure-threshold: warning
-
-  shellcheck:
-    name: shellcheck
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - name: shellcheck
-        uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # 2.0.0
-        env:
-          SHELLCHECK_OPTS: -e SC1091
-
-  actionlint:
-    name: actionlint
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - name: actionlint
-        uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
-
-  zizmor:
-    name: zizmor
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - name: zizmor
-        uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7
-        with:
-          advanced-security: false
-          annotations: true
-          persona: regular
+  lint:
+    permissions:
+      contents: read
+    uses: projectpotos/actions/.github/workflows/test-lint.yaml@d552491caf4332bd5888c8261db4354a19bf8b9e # v0.2.1
+    with:
+      ruff: true
+      ruff-group: lint
+      hadolint: true
+      shellcheck: true
+      shellcheck-opts: "-e SC1091"
 
   all_green:
+    name: all_green
     if: ${{ always() }}
     needs:
       - pytest
-      - ruff
-      - yamllint
-      - hadolint
-      - shellcheck
-      - actionlint
-      - zizmor
+      - lint
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions: {}
     steps:
       - name: Verify no required job failed or was cancelled
-        env:
-          RESULTS: ${{ toJSON(needs.*.result) }}
-        run: |
-          echo "Job results: ${RESULTS}"
-          if echo "${RESULTS}" | grep -Eq '"(failure|cancelled)"'; then
-            echo "::error::At least one required job failed or was cancelled"
-            exit 1
-          fi
+        uses: projectpotos/actions/all-green@cc9fa23313351dbc2443f830da4a111f96d293c6 # v0.2.2
+        with:
+          needs: ${{ toJSON(needs) }}
