@@ -29,11 +29,13 @@ GRUBX64="${SHIM_DIR}/grubx64.efi"
 MOK_LABEL="{{ config.client_name.long }}"
 MOK_PASS={{ config.uki.mok_password | quote }}
 
-# `--setopt=install_weak_deps=False` is important so we dont install grub2-efi-x64
+# Since shim-x64 on fedora 44 has a *hard* Requires on grub2-efi-x64, GRUB lands on
+# disk no matter what. Its %posttrans copies the real GRUB over grubx64.efi on
+# every install/upgrade; the potos-bootchain-heal units below undo that.
 log "Installing Secure Boot tooling"
 dnf install -y {% if not config.payload.include_updates %}--disablerepo='updates*' {% endif %}--setopt=install_weak_deps=False \
   shim-x64 systemd-boot-unsigned systemd-ukify sbsigntools \
-  dracut tpm2-tools mokutil openssl
+  dracut tpm2-tools mokutil openssl policycoreutils
 
 # kernel-install, uki and dracut config
 log "Writing kernel-install / ukify / dracut configuration"
@@ -224,6 +226,69 @@ ExecStartPost=/usr/bin/sbsign --key ${MOK_KEY} --cert ${MOK_CRT} \\
   --output ${GRUBX64} ${SDBOOT_EFI}
 EOF
 systemctl enable systemd-boot-update.service
+
+# grub2-efi-x64 cannot be excluded or removed: shim-x64 hard-requires it and
+# it protects itself via /etc/dnf/protected.d/. Its %posttrans replaces
+# ${GRUBX64} with the real (Fedora-signed) GRUB on every install/upgrade,
+# which shim then chainloads into a configless grub prompt and makes the system unbootable.
+# The transaction happens while the system is still running, so a path unit
+# watches ${GRUBX64} and re-signs systemd-boot over it the moment it stops
+# carrying our MOK signature. The service is also enabled directly so every
+# boot (e.g. after recovering via the EFI/BOOT fallback) re-checks the chain.
+log "Installing boot chain self-heal units"
+mkdir -p /usr/libexec/potos
+cat >/usr/libexec/potos/bootchain-heal.sh <<EOF
+#!/bin/bash
+# Restore the host-signed systemd-boot at ${GRUBX64} if another package
+set -euo pipefail
+
+if ! sbverify --cert ${MOK_CRT} ${GRUBX64} >/dev/null 2>&1; then
+  echo "${GRUBX64} lost the host MOK signature; re-signing systemd-boot over it"
+  sbsign --key ${MOK_KEY} --cert ${MOK_CRT} \\
+    --output ${GRUBX64} ${SDBOOT_EFI}
+fi
+if ! sbverify --cert ${MOK_CRT} /boot/efi/EFI/BOOT/grubx64.efi >/dev/null 2>&1; then
+  echo "refreshing removable-media fallback copy of grubx64.efi"
+  cp -f ${GRUBX64} /boot/efi/EFI/BOOT/grubx64.efi
+fi
+EOF
+chmod 0755 /usr/libexec/potos/bootchain-heal.sh
+
+cat >/etc/systemd/system/potos-bootchain-heal.service <<EOF
+[Unit]
+Description=Restore host-signed systemd-boot at EFI/fedora/grubx64.efi
+ConditionPathExists=${MOK_KEY}
+RequiresMountsFor=/boot/efi
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/potos/bootchain-heal.sh
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+cat >/etc/systemd/system/potos-bootchain-heal.path <<EOF
+[Path]
+PathModified=${GRUBX64}
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# allow systemd to watch the bootloader file
+log "Installing SELinux policy module for the bootloader watch"
+mkdir -p /usr/share/potos/selinux
+cat >/usr/share/potos/selinux/potos-bootchain-heal.cil <<'EOF'
+; Allow systemd path units (PID 1) to watch grubx64.efi (dosfs_t).
+(allow init_t dosfs_t (dir (getattr open read search watch)))
+(allow init_t dosfs_t (file (getattr open read watch)))
+EOF
+# -n: only update the policy store; the %post chroot has no selinuxfs to load
+# into. The module is compiled into the binary policy loaded on first boot.
+semodule -n -i /usr/share/potos/selinux/potos-bootchain-heal.cil
+
+systemctl enable potos-bootchain-heal.path potos-bootchain-heal.service
 
 # Stores the request in MokNew with the password hash.
 # The operator has to confirm the password at MokManager on the next reboot.
