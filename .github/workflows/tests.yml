@@ -36,7 +36,7 @@ jobs:
   lint:
     permissions:
       contents: read
-    uses: projectpotos/actions/.github/workflows/test-lint.yaml@d552491caf4332bd5888c8261db4354a19bf8b9e # v0.2.1
+    uses: projectpotos/actions/.github/workflows/test-lint.yaml@cc9fa23313351dbc2443f830da4a111f96d293c6 # v0.2.2
     with:
       ruff: true
       ruff-group: lint
