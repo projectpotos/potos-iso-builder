@@ -21,7 +21,7 @@ jobs:
       packages: write # push the image to GHCR
       id-token: write # keyless signing for the provenance attestation
       attestations: write # write the build-provenance attestation
-    uses: projectpotos/actions/.github/workflows/release-container.yaml@cc9fa23313351dbc2443f830da4a111f96d293c6 # v0.2.2
+    uses: projectpotos/actions/.github/workflows/release-container.yaml@ac5f831258705d1d8be540219f3167e208812395 # v0.4.0
     with:
       # main        -> :edge
       # v1.2.3      -> :1.2.3, :1.2, :1, :latest
