@@ -26,7 +26,7 @@ jobs:
         python-version: ["3.12", "3.13", "3.14"]
     steps:
       - name: Setup uv project
-        uses: projectpotos/actions/setup-uv@cc9fa23313351dbc2443f830da4a111f96d293c6 # v0.2.2
+        uses: projectpotos/actions/setup-uv@ac5f831258705d1d8be540219f3167e208812395 # v0.4.0
         with:
           python-version: ${{ matrix.python-version }}
 
