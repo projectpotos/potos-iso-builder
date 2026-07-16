@@ -366,6 +366,11 @@ class ISOBuilder:
             "role_vars": self.cfg.firstboot.role_vars,
             "firstboot_extra_roles": self.cfg.firstboot.extra_roles,
             "firstboot": self.cfg.firstboot.firstboot,
+            "uki": {
+                "enabled": self.cfg.uki.enabled,
+                "mok_password": self.cfg.uki.mok_password,
+                "cmdline_extra": self.cfg.uki.cmdline_extra,
+            },
             "debug": {
                 "no_log": self.cfg.debug.no_log,
                 "verbosity": self.cfg.debug.verbosity,

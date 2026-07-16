@@ -484,7 +484,7 @@ class Config:
     def from_dict(cls, data: dict):
         return cls(
             client_name=ClientName.from_dict(data.get("client_name", {})),
-            fedora_version=data.get("fedora_version", 41),
+            fedora_version=data.get("fedora_version", 44),
             extra_repos=data.get("extra_repos", []),
             payload=Payload.from_dict(data.get("payload", {})),
             disk_encryption=DiskEncryption.from_dict(data.get("disk_encryption", {})),
