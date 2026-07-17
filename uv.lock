@@ -442,23 +442,23 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "jinja2", specifier = ">=3.1" },
-    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "jinja2", specifier = "==3.1.6" },
+    { name = "pyyaml", specifier = "==6.0.3" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "dasbus", specifier = ">=1.7" },
-    { name = "pre-commit", specifier = ">=4.6.0" },
-    { name = "pykickstart", specifier = ">=3.75" },
-    { name = "simpleline", specifier = ">=1.9" },
+    { name = "dasbus", specifier = "==1.7" },
+    { name = "pre-commit", specifier = "==4.6.0" },
+    { name = "pykickstart", specifier = "==3.75" },
+    { name = "simpleline", specifier = "==1.9.0" },
 ]
 lint = [
-    { name = "ruff", specifier = ">=0.15.21" },
+    { name = "ruff", specifier = "==0.15.22" },
     { name = "shellcheck-jinja", git = "https://github.com/projectpotos/shellcheck-jinja?tag=v0.2.0" },
-    { name = "yamllint", specifier = ">=1.37" },
+    { name = "yamllint", specifier = "==1.38.0" },
 ]
-test = [{ name = "pytest", specifier = ">=9.1.1" }]
+test = [{ name = "pytest", specifier = "==9.1.1" }]
 
 [[package]]
 name = "pre-commit"
