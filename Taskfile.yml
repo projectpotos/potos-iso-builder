@@ -44,7 +44,6 @@ tasks:
     cmds:
       - >-
         uv pip compile --generate-hashes --universal
-        --custom-compile-command "task firstboot:lock"
         src/firstboot/requirements.in -o src/firstboot/requirements.txt
 
   build:
