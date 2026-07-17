@@ -1,0 +1,13 @@
+---
+# shellcheck-jinja vars for src/templates/uki.sh.j2
+config:
+  client_name:
+    long: Potos Linux Client
+  payload:
+    include_updates: false
+  debug:
+    verbosity: 2
+  uki:
+    enabled: true
+    mok_password: "pot'os pass"
+    cmdline_extra: quiet rhgb

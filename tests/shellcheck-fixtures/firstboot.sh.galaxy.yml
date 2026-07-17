@@ -1,0 +1,25 @@
+---
+# shellcheck-jinja vars for src/templates/firstboot.sh.j2
+# with:
+#   - systemd-boot
+#   - base collection from galaxy
+config:
+  client_name:
+    long: Potos Linux Client
+    short: potos
+  output:
+    version: "1.0.0"
+  payload:
+    include_updates: true
+  firstboot:
+    ansible_core_version: "2.19.3"
+    on_success: reboot
+  collection_source: projectpotos.base==0.6.7
+  bootloader:
+    type: systemd-boot
+config_yaml: |
+  client_name:
+    short: potos
+    long: Potos Linux Client
+build_ref: ""
+build_date: "2026-07-16"

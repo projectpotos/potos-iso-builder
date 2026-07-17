@@ -1,0 +1,22 @@
+---
+# shellcheck-jinja vars for src/templates/firstboot.sh.j2
+config:
+  client_name:
+    long: Potos Linux Client
+    short: potos
+  output:
+    version: "1.0.0"
+  payload:
+    include_updates: false
+  firstboot:
+    ansible_core_version: ""
+    on_success: logout
+  collection_source: ""
+  bootloader:
+    type: grub2
+config_yaml: |
+  client_name:
+    short: potos
+    long: Potos Linux Client
+build_ref: v1.0.0
+build_date: "2026-07-16"

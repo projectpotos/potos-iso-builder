@@ -1,0 +1,8 @@
+---
+# Maps each jinja2 template to its shellcheck-jinja fixtures
+src/templates/firstboot.sh.j2:
+  - firstboot.sh.yml
+  - firstboot.sh.galaxy.yml
+src/templates/uki.sh.j2:
+  - uki.sh.yml
+  - uki.sh.quiet.yml
