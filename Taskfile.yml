@@ -44,7 +44,7 @@ tasks:
     cmds:
       - >-
         uv pip compile --generate-hashes --universal
-        src/firstboot/requirements.in --output-file src/firstboot/requirements.txt
+        src/firstboot/requirements.in --output-file=src/firstboot/requirements.txt
 
   build:
     desc: Build the custom Fedora ISO using the container builder (./input -> ./output)
