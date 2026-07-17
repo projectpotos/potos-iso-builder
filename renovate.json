@@ -6,5 +6,14 @@
   },
   "pip_requirements": {
     "enabled": false
-  }
+  },
+  "packageRules": [
+    {
+      "description": "Keep Fedora 44",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["fedora", "docker.io/library/fedora"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "enabled": false
+    }
+  ]
 }
