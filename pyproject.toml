@@ -3,7 +3,7 @@ name = "potos-iso-builder"
 version = "1.0.0"
 description = "Build customised Fedora installer ISOs with kickstart templating"
 requires-python = ">=3.12"
-dependencies = ["jinja2>=3.1", "pyyaml>=6.0"]
+dependencies = ["jinja2==3.1.6", "pyyaml==6.0.3"]
 
 [project.scripts]
 build-iso = "build:main"
@@ -11,13 +11,13 @@ build-iso = "build:main"
 
 [dependency-groups]
 dev = [
-    "pykickstart>=3.75",
-    "simpleline>=1.9",
-    "dasbus>=1.7",
-    "pre-commit>=4.6.0",
+    "pykickstart==3.75",
+    "simpleline==1.9.0",
+    "dasbus==1.7",
+    "pre-commit==4.6.0",
 ]
-test = ["pytest>=9.1.1"]
-lint = ["ruff>=0.15.21", "yamllint>=1.37", "shellcheck-jinja"]
+test = ["pytest==9.1.1"]
+lint = ["ruff==0.15.22", "yamllint==1.38.0", "shellcheck-jinja"]
 
 [tool.uv.sources]
 shellcheck-jinja = { git = "https://github.com/projectpotos/shellcheck-jinja", tag = "v0.2.0" }
