@@ -13,6 +13,12 @@ vars:
     sh: git describe --tags --always --dirty 2>/dev/null || true
 
 tasks:
+  dev:setup:
+    desc: Setup the development environment
+    cmds:
+      - uv sync
+      - uv run pre-commit install
+
   build:collection:
     desc: Build the projectpotos.base collection tarball and stage it under <INPUT_DIR>/collections/
     summary: |

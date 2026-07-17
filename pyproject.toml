@@ -3,10 +3,7 @@ name = "potos-iso-builder"
 version = "1.0.0"
 description = "Build customised Fedora installer ISOs with kickstart templating"
 requires-python = ">=3.12"
-dependencies = [
-    "jinja2>=3.1",
-    "pyyaml>=6.0",
-]
+dependencies = ["jinja2>=3.1", "pyyaml>=6.0"]
 
 [project.scripts]
 build-iso = "build:main"
@@ -17,14 +14,13 @@ dev = [
     "pykickstart>=3.75",
     "simpleline>=1.9",
     "dasbus>=1.7",
+    "pre-commit>=4.6.0",
 ]
-test = [
-    "pytest>=9.1.1",
-]
-lint = [
-    "ruff>=0.15.21",
-    "yamllint>=1.37",
-]
+test = ["pytest>=9.1.1"]
+lint = ["ruff>=0.15.21", "yamllint>=1.37", "shellcheck-jinja"]
+
+[tool.uv.sources]
+shellcheck-jinja = { git = "https://github.com/projectpotos/shellcheck-jinja", tag = "v0.2.0" }
 
 [tool.ruff]
 target-version = "py312"
@@ -33,15 +29,15 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # pyflakes
-    "I",    # isort
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "UP",   # pyupgrade
-    "SIM",  # flake8-simplify
-    "RUF",  # ruff-specific rules
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific rules
 ]
 
 [tool.ruff.lint.per-file-ignores]

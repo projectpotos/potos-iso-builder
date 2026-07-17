@@ -1,0 +1,10 @@
+---
+repos:
+  - repo: local
+    hooks:
+      - id: shellcheck-jinja
+        name: shellcheck-jinja
+        entry: uv run --group lint shellcheck-jinja --update
+        language: system
+        files: (\.sh\.j2$|^tests/shellcheck-fixtures/)
+        pass_filenames: false

@@ -1,0 +1,165 @@
+#!/bin/bash
+# Potos Linux Client kickstart %post bootstrap.
+#
+# This script runs inside the installer; it only prepares the system so that
+# the firstboot wizard can run on first graphical login.
+#
+# Layout produced:
+#   /etc/potos/config.yml                       -- single non-secret system config
+#   /opt/potos-firstboot/venv                   -- ansible-core virtualenv
+#   /usr/share/ansible/collections/...          -- bundled projectpotos.base collection
+#   /usr/libexec/potos/firstboot-wrapper.sh     -- launches the firstboot playbook
+#   /etc/xdg/autostart/potos-firstboot.desktop  -- triggers wrapper on login
+
+set -euo pipefail
+
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
+
+LOG_DIR="/var/log/potos"
+SETUP_DIR="/root/potos-setup"
+
+install -d -m 0750 -o root -g root /etc/potos
+install -d -m 0750 -o root -g root /var/lib/potos
+install -d -m 0750 -o root -g root "${LOG_DIR}"
+install -d -m 0755 -o root -g root /usr/libexec/potos
+
+# --- System configuration -------------------------------------------------
+# With the specs config and client definition.
+cat >/etc/potos/config.yml <<'EOF'
+client_name:
+  short: potos
+  long: Potos Linux Client
+
+EOF
+chmod 0640 /etc/potos/config.yml
+
+# --- Version stamp --------------------------------------------------------
+cat >/etc/potos/version <<EOF
+potos 1.0.0 (2026-07-16)
+EOF
+
+# --- Prerequisites + venv + collection -----------------------------------
+dnf install -y git python3 python3-pip python3-virtualenv polkit yad
+
+python3 -m venv /opt/potos-firstboot/venv
+# Version pinned via firstboot.ansible_core_version in the build config.
+/opt/potos-firstboot/venv/bin/pip install "ansible-core==2.19.3"
+
+# Install the projectpotos.base ansible collection.
+mkdir -p /usr/share/ansible/collections
+# Configured source: projectpotos.base==0.6.7
+/opt/potos-firstboot/venv/bin/ansible-galaxy collection install \
+  projectpotos.base==0.6.7 \
+  -p /usr/share/ansible/collections --force
+
+# --- Branding ---------------------------------------------------------------
+if [ -f "${SETUP_DIR}/logo.png" ]; then
+  install -d -m 0755 -o root -g root /usr/share/potos
+  install -m 0644 -o root -g root "${SETUP_DIR}/logo.png" /usr/share/potos/logo.png
+fi
+
+if [ -f "${SETUP_DIR}/splash.bmp" ]; then
+  install -d -m 0755 -o root -g root /usr/share/systemd/bootctl
+  install -m 0644 -o root -g root \
+    "${SETUP_DIR}/splash.bmp" \
+    /usr/share/systemd/bootctl/splash-potos.bmp
+fi
+
+# --- Firstboot wrapper + autostart ---------------------------------------
+cat >/usr/libexec/potos/firstboot-wrapper.sh <<'WRAPPER'
+#!/bin/bash
+# Runs the potos firstboot playbook once on the first graphical login.
+set -euo pipefail
+MARKER=/var/lib/potos/firstboot.done
+[ -e "${MARKER}" ] && exit 0
+
+# Re-exec via pkexec so we can write to /etc and do other privileged stuff. The
+# autostart entry runs as the logged-in user; pkexec prompts for authentication.
+# Since pkexec strips the environment, we have to forward the user's DISPLAY/XAUTHORITY
+# as positional args.
+if [ "${EUID}" -ne 0 ]; then
+  exec pkexec --disable-internal-agent /usr/libexec/potos/firstboot-wrapper.sh \
+    "DISPLAY=${DISPLAY:-:0}" \
+    "XAUTHORITY=${XAUTHORITY:-}" \
+    "$@"
+fi
+
+# Recover the forwarded values
+export "${1?missing DISPLAY arg}"
+export "${2?missing XAUTHORITY arg}"
+shift 2
+
+export ANSIBLE_COLLECTIONS_PATH="${ANSIBLE_COLLECTIONS_PATH:-/usr/share/ansible/collections}"
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
+
+# Show the failure via the collection's yad module so the dialog gets the
+# same display handling and branding as the playbook's own dialogs. We run as
+# root with the user's DISPLAY/XAUTHORITY exported, just like the playbook.
+error_dialog() {
+  local body="$1" image=""
+  [ -f /usr/share/potos/logo.png ] && image="image=/usr/share/potos/logo.png image_on_top=true"
+  /opt/potos-firstboot/venv/bin/ansible localhost -i localhost, -c local \
+    -m projectpotos.base.yad \
+    -a "dialog=message title='Potos Linux Client firstboot' align=center borders=20 ${image} text='${body}'" \
+    >>"${LOG}" 2>&1 || true
+}
+
+LOG=/var/log/potos/firstboot.log
+mkdir -p "$(dirname "${LOG}")"
+
+COLLECTION_ROOT=/usr/share/ansible/collections/ansible_collections/projectpotos/base
+if [ ! -d "${COLLECTION_ROOT}" ]; then
+  echo "ERROR: projectpotos.base collection not installed under ${COLLECTION_ROOT}" >&2
+  /opt/potos-firstboot/venv/bin/ansible-galaxy collection list 2>&1 | tee -a "${LOG}" >&2
+  exit 1
+fi
+
+VERBOSITY_OPT=()
+LEVEL=0
+if [ -f /etc/potos/config.yml ]; then
+  LEVEL="$(yq '.debug.verbosity // 0' /etc/potos/config.yml 2>/dev/null)" || LEVEL=0
+fi
+[[ "${LEVEL}" =~ ^[0-9]+$ ]] || LEVEL=0
+[ "${LEVEL}" -gt 4 ] && LEVEL=4
+if [ "${LEVEL}" -gt 0 ]; then
+  VERBOSITY_OPT=("-$(printf 'v%.0s' $(seq 1 "${LEVEL}"))")
+fi
+
+RC=0
+/opt/potos-firstboot/venv/bin/ansible-playbook \
+  -i localhost, -c local \
+  "${VERBOSITY_OPT[@]}" \
+  projectpotos.base.firstboot \
+  2>&1 | tee -a "${LOG}" || RC=$?
+
+if [ "${RC}" -ne 0 ]; then
+  error_dialog "Attention: Potos Linux Client firstboot setup failed.
+See ${LOG} for details."
+  exit "${RC}"
+fi
+
+# Success: firstboot.on_success = reboot
+systemctl reboot
+
+exit 0
+WRAPPER
+
+chmod 0755 /usr/libexec/potos/firstboot-wrapper.sh
+
+cat >/etc/xdg/autostart/potos-firstboot.desktop <<EOF
+[Desktop Entry]
+Type=Application
+Name=Potos Linux Client first-boot setup
+Exec=/usr/libexec/potos/firstboot-wrapper.sh
+Terminal=true
+X-GNOME-Autostart-enabled=true
+NoDisplay=false
+EOF
+chmod 0644 /etc/xdg/autostart/potos-firstboot.desktop
+
+# --- Cleanup staged payload ----------------------------------------------
+rm -rf "${SETUP_DIR}"
+
+echo "Potos Linux Client bootstrap complete."
