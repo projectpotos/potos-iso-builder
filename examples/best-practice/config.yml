@@ -166,7 +166,7 @@ firstboot:
           tpm2_device: auto
           tpm2_pcrs: ["7"]
           tpm2_public_key_pcrs: ["11"]
-          tpm2_public_key: "/etc/secureboot/pcr.pub.pem"
+          tpm2_public_key: "/etc/secureboot/pcr-initrd.pub.pem"
           wipe_slots: tpm2
 
 debug:

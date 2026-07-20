@@ -150,7 +150,7 @@ firstboot:
             - "7"
             - "15:sha256=0000000000000000000000000000000000000000000000000000000000000000"
           tpm2_public_key_pcrs: ["11"]
-          tpm2_public_key: "/etc/secureboot/pcr.pub.pem"
+          tpm2_public_key: "/etc/secureboot/pcr-initrd.pub.pem"
           passphrase: "{{ steps.luks_user_rotate.passphrase }}"
 
       - id: systemd_creds_store
@@ -162,12 +162,12 @@ firstboot:
           mode: "0600"
           owner: "root"
           group: "root"
-          with_key: "host+tpm2"
+          with_key: "host+tpm2-with-public-key"
           tpm2_pcrs:
             - "7"
             - "15"
           tpm2_public_key_pcrs: ["11"]
-          tpm2_public_key: "/etc/secureboot/pcr.pub.pem"
+          tpm2_public_key: "/etc/secureboot/pcr-system.pub.pem"
 
 input:
   iso: "fedora-server-44-1.7"
