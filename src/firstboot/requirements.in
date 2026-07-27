@@ -1,2 +1,2 @@
 # Python dependencies for the firstboot bootstrap virtualenv
-ansible-core==2.21.1
+ansible-core==2.21.2
