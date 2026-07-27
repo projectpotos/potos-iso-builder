@@ -11,7 +11,7 @@ build-iso = "build:main"
 
 [dependency-groups]
 dev = [
-    "pykickstart==3.75",
+    "pykickstart==3.76",
     "simpleline==1.9.0",
     "dasbus==1.7",
     "pre-commit==4.6.0",
