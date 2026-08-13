@@ -23,7 +23,7 @@ EXAMPLE_CONFIG = {
         },
         "extra_roles": [{"name": "mycorp.bootstrap.enroll", "src": "git+https://example.com/r.git"}],
     },
-    "input": {"iso": "fedora-server-44-1.7"},
+    "input": {"iso": "fedora-server-netinst-44-1.7"},
     "output": {"version": "20260415", "iso_filename": "dailyplanetos-installer.iso"},
 }
 
@@ -45,7 +45,7 @@ def test_from_dict_with_full_config():
         "firstboot_ask_keyboardlayout": False,
     }
     assert config.firstboot.extra_roles[0]["name"] == "mycorp.bootstrap.enroll"
-    assert config.input.iso == "fedora-server-44-1.7"
+    assert config.input.iso == "fedora-server-netinst-44-1.7"
     assert config.output.iso_filename == "dailyplanetos-installer.iso"
     assert config.output.version == "20260415"
 
@@ -63,7 +63,7 @@ def test_from_dict_defaults_applied_for_empty_dict():
     assert config.initial_user.username == "potos"
     assert config.firstboot.role_vars == {}
     assert config.firstboot.extra_roles == []
-    assert config.input.iso == ""
+    assert config.input.iso == "fedora-server-netinst-44-1.7"
     assert config.output.iso_filename == "potos-installer.iso"
 
 
