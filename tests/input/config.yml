@@ -39,6 +39,7 @@ bootloader:
 uki:
   enabled: true
   mok_password: "potos"
+  mok_timeout: -1
   cmdline_extra: ""
 
 firewall:

@@ -369,6 +369,7 @@ class ISOBuilder:
             "uki": {
                 "enabled": self.cfg.uki.enabled,
                 "mok_password": self.cfg.uki.mok_password,
+                "mok_timeout": self.cfg.uki.mok_timeout,
                 "cmdline_extra": self.cfg.uki.cmdline_extra,
             },
             "debug": {

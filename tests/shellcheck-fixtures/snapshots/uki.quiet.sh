@@ -26,6 +26,7 @@ fi
   -i localhost, -c local \
   -e uki_enabled=false \
   -e uki_mok_password=potos \
+  -e uki_mok_timeout=-1 \
   -e uki_cmdline_extra='' \
   -e uki_mok_label='Potos Linux Client' \
   projectpotos.base.uki

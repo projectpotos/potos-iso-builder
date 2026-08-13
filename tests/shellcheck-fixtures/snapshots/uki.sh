@@ -28,6 +28,7 @@ fi
   -e '{"uki_dnf_disablerepo": ["updates*"]}' \
   -e uki_enabled=true \
   -e uki_mok_password='pot'"'"'os pass' \
+  -e uki_mok_timeout=300 \
   -e uki_cmdline_extra='quiet rhgb' \
   -e uki_mok_label='Potos Linux Client' \
   projectpotos.base.uki

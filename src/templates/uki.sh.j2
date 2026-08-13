@@ -32,6 +32,7 @@ fi
 {% endif %}
   -e uki_enabled={{ config.uki.enabled | lower }} \
   -e uki_mok_password={{ config.uki.mok_password | quote }} \
+  -e uki_mok_timeout={{ config.uki.mok_timeout }} \
   -e uki_cmdline_extra={{ config.uki.cmdline_extra | quote }} \
   -e uki_mok_label={{ config.client_name.long | quote }} \
   projectpotos.base.uki
