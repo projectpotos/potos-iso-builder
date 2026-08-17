@@ -204,6 +204,7 @@ def test_uki_defaults_to_disabled():
 
     assert uki.enabled is False
     assert uki.mok_password == "potos"
+    assert uki.mok_timeout == -1
     assert uki.cmdline_extra == ""
     assert Config.from_dict({}).uki.enabled is False
 
@@ -214,6 +215,7 @@ def test_uki_enabled_with_overrides():
             "uki": {
                 "enabled": True,
                 "mok_password": "s3cr3t",
+                "mok_timeout": 300,
                 "cmdline_extra": "audit=1",
             }
         }
@@ -221,6 +223,7 @@ def test_uki_enabled_with_overrides():
 
     assert config.uki.enabled is True
     assert config.uki.mok_password == "s3cr3t"
+    assert config.uki.mok_timeout == 300
     assert config.uki.cmdline_extra == "audit=1"
 
 

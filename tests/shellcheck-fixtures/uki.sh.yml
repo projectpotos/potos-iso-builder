@@ -10,4 +10,5 @@ config:
   uki:
     enabled: true
     mok_password: "pot'os pass"
+    mok_timeout: 300
     cmdline_extra: quiet rhgb

@@ -157,6 +157,7 @@ class UKI:
 
     enabled: bool
     mok_password: str
+    mok_timeout: int
     cmdline_extra: str
 
     @classmethod
@@ -164,6 +165,7 @@ class UKI:
         return cls(
             enabled=data.get("enabled", False),
             mok_password=data.get("mok_password", "potos"),
+            mok_timeout=data.get("mok_timeout", -1),
             cmdline_extra=data.get("cmdline_extra", ""),
         )
 
