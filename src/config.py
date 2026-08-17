@@ -372,7 +372,7 @@ class Input:
     @classmethod
     def from_dict(cls, data: dict):
         return cls(
-            iso=data.get("iso", ""),
+            iso=data.get("iso", "fedora-server-netinst-44-1.7"),
         )
 
 

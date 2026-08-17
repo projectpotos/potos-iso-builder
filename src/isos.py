@@ -17,9 +17,21 @@ class ISOSource:
     sha256: str
 
 
-# TODO: Test with netinstall ISO
-
 SUPPORTED_ISOS: dict[str, ISOSource] = {
+    "fedora-server-netinst-44-1.7": ISOSource(
+        id="fedora-server-netinst-44-1.7",
+        iso_filename="Fedora-Server-netinst-x86_64-44-1.7.iso",
+        iso_url=(
+            "https://download.fedoraproject.org/pub/fedora/linux/releases/44/"
+            "Server/x86_64/iso/Fedora-Server-netinst-x86_64-44-1.7.iso"
+        ),
+        checksum_filename="Fedora-Server-44-1.7-x86_64-CHECKSUM",
+        checksum_url=(
+            "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/"
+            "Server/x86_64/iso/Fedora-Server-44-1.7-x86_64-CHECKSUM"
+        ),
+        sha256="ae20c06bea746913cadea7d80463e13f4bf55bee4df2918111c921c674b70283",
+    ),
     "fedora-server-44-1.7": ISOSource(
         id="fedora-server-44-1.7",
         iso_filename="Fedora-Server-dvd-x86_64-44-1.7.iso",
@@ -36,7 +48,7 @@ SUPPORTED_ISOS: dict[str, ISOSource] = {
     ),
 }
 
-DEFAULT_ISO = "fedora-server-44-1.7"
+DEFAULT_ISO = "fedora-server-netinst-44-1.7"
 
 
 def resolve_iso(iso_id: str = "") -> ISOSource:
