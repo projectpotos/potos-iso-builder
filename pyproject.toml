@@ -11,13 +11,13 @@ build-iso = "build:main"
 
 [dependency-groups]
 dev = [
-    "pykickstart==3.77",
+    "pykickstart==3.78",
     "simpleline==1.9.0",
     "dasbus==1.7",
-    "pre-commit==4.6.1",
+    "pre-commit==4.6.2",
 ]
 test = ["pytest==9.1.1"]
-lint = ["ruff==0.16.2", "yamllint==1.38.0", "shellcheck-jinja"]
+lint = ["ruff==0.16.5", "yamllint==1.38.0", "shellcheck-jinja"]
 
 [tool.uv.sources]
 shellcheck-jinja = { git = "https://github.com/projectpotos/shellcheck-jinja", tag = "v0.3.1" }
