@@ -2,7 +2,7 @@
 name = "potos-iso-builder"
 version = "1.0.0"
 description = "Build customised Fedora installer ISOs with kickstart templating"
-requires-python = ">=3.12"
+requires-python = "==3.14.7"
 dependencies = ["jinja2==3.1.6", "pyyaml==6.0.3"]
 
 [project.scripts]
