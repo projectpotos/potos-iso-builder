@@ -7,7 +7,7 @@ RUN dnf -y update && \
     dnf clean all
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:0.12.10-python3.14-trixie@sha256:a3e6118ca6b41a5e5c457fd70eb0fc71f11aea67408fb68e5888ba955ad545c0 /usr/local/bin/uv /usr/local/bin/uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:0.13.0-python3.14-trixie@sha256:6137b94a71de738abe2ca9c2b38e1a5eb946c997dcb23dff3865288ecb21a276 /usr/local/bin/uv /usr/local/bin/uvx /usr/local/bin/
 
 WORKDIR /app
 
