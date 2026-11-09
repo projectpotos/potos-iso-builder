@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 
+from isos import DEFAULT_ISO
+
 
 @dataclass
 class ClientName:
@@ -146,7 +148,7 @@ class UKI:
 
     When enabled, the installed system is converted from the shimless
     ``systemd-boot`` layout to a measured, signed boot chain:
-    ``shim`` -> ``systemd-boot`` (signed, placed as ``grubx64.efi``) -> signed UKI.
+    ``shim`` -> ``systemd-boot`` (signed, placed as ``EFI/potos/grubx64.efi``) -> signed UKI.
     Each host generates and enrolls its own key as a MOK; the firmware
     Secure Boot databases (PK/KEK/db/dbx) are left untouched.
 
@@ -372,7 +374,7 @@ class Input:
     @classmethod
     def from_dict(cls, data: dict):
         return cls(
-            iso=data.get("iso", "fedora-server-netinst-44-1.7"),
+            iso=data.get("iso", DEFAULT_ISO),
         )
 
 
@@ -486,7 +488,7 @@ class Config:
     def from_dict(cls, data: dict):
         return cls(
             client_name=ClientName.from_dict(data.get("client_name", {})),
-            fedora_version=data.get("fedora_version", 44),
+            fedora_version=data.get("fedora_version", 45),
             extra_repos=data.get("extra_repos", []),
             payload=Payload.from_dict(data.get("payload", {})),
             disk_encryption=DiskEncryption.from_dict(data.get("disk_encryption", {})),

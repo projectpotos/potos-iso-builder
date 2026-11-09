@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ISO_PATH="$(realpath "${SCRIPT_DIR}/../output/potos-installer.iso")"
 DISK_PATH="${HOME}/.local/share/libvirt/images/${VM_NAME}.qcow2"
 
-OS_VARIANT="fedora43"
+OS_VARIANT="fedora44"
 
 OVMF_CODE="/usr/share/edk2/x64/OVMF_CODE.secboot.4m.fd"
 OVMF_VARS_TEMPLATE="/usr/share/edk2/x64/OVMF_VARS.4m.fd"

@@ -119,7 +119,7 @@ authselect enable-feature {{ feature }}
 graphical
 
 # Package Selection
-%packages
+%packages --ignoremissing
 {% for pkg in config.packages.exclude %}
 -{{ pkg }}
 {% endfor %}
