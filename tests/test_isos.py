@@ -20,9 +20,9 @@ def test_resolve_empty_id_returns_default():
 
 
 def test_resolve_known_id():
-    source = resolve_iso("fedora-server-netinst-44-1.7")
-    assert source.iso_filename == "Fedora-Server-netinst-x86_64-44-1.7.iso"
-    assert source.checksum_filename == "Fedora-Server-44-1.7-x86_64-CHECKSUM"
+    source = resolve_iso("fedora-server-netinst-45-1.4")
+    assert source.iso_filename == "Fedora-Server-netinst-x86_64-45-1.4.iso"
+    assert source.checksum_filename == "Fedora-Server-45-1.4-x86_64-CHECKSUM"
     assert len(source.sha256) == 64
     assert source.iso_url.endswith(source.iso_filename)
 

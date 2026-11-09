@@ -5,7 +5,7 @@ client_name:
   short: "potos"
   long: "Potos Linux Client"
 
-fedora_version: 44
+fedora_version: 45
 
 extra_repos: []
 

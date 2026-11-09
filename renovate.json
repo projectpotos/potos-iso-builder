@@ -15,7 +15,7 @@
   },
   "packageRules": [
     {
-      "description": "Keep Fedora 44",
+      "description": "Keep Fedora 45",
       "matchDatasources": ["docker"],
       "matchPackageNames": ["fedora", "docker.io/library/fedora"],
       "matchUpdateTypes": ["major", "minor", "patch"],
