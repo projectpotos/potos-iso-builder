@@ -614,7 +614,7 @@ dev = [
 ]
 lint = [
     { name = "ruff", specifier = "==0.17.5" },
-    { name = "shellcheck-jinja", git = "https://github.com/projectpotos/shellcheck-jinja?tag=v0.3.2" },
+    { name = "shellcheck-jinja", git = "https://github.com/projectpotos/shellcheck-jinja?tag=v0.4.0" },
     { name = "yamllint", specifier = "==1.38.0" },
 ]
 test = [{ name = "pytest", specifier = "==9.2.0" }]
@@ -788,7 +788,7 @@ wheels = [
 [[package]]
 name = "shellcheck-jinja"
 version = "0.3.1"
-source = { git = "https://github.com/projectpotos/shellcheck-jinja?tag=v0.3.2#79e2bca3b552a2f366c28f4e6861fa92004e8970" }
+source = { git = "https://github.com/projectpotos/shellcheck-jinja?tag=v0.4.0#1e84bfafbce7634d68b2ce91634ca533ab27bc20" }
 dependencies = [
     { name = "ansible-core", version = "2.21.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
     { name = "ansible-core", version = "2.22.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
